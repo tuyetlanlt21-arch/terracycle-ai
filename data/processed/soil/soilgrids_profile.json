@@ -1,0 +1,102 @@
+{
+  "location": {
+    "latitude": 10.383333,
+    "longitude": 105.45
+  },
+  "source": "ISRIC SoilGrids v2.0 REST API",
+  "source_url": "https://rest.isric.org/soilgrids/v2.0/properties/query",
+  "retrieval_date": "2026-11-14",
+  "status": "no_values",
+  "diagnostics": {
+    "requested_properties": [
+      "phh2o",
+      "clay",
+      "sand",
+      "silt",
+      "soc"
+    ],
+    "requested_depths": [
+      "0-5cm",
+      "5-15cm",
+      "15-30cm",
+      "30-60cm"
+    ],
+    "response_layers": [
+      "clay",
+      "phh2o",
+      "sand",
+      "silt",
+      "soc"
+    ],
+    "response_depths": [
+      "0-5cm",
+      "15-30cm",
+      "30-60cm",
+      "5-15cm"
+    ],
+    "null_value_count": 20,
+    "coverage_interpretation": "HTTP/JSON response contained the requested layers and depths, but all pixel means were null; this is retained as an unresolved coverage/service result, not converted to a measurement."
+  },
+  "properties": [
+    {
+      "property": "clay",
+      "unit": "%",
+      "scale_factor": 10,
+      "values": {
+        "0-5cm": null,
+        "5-15cm": null,
+        "15-30cm": null,
+        "30-60cm": null
+      }
+    },
+    {
+      "property": "phh2o",
+      "unit": "-",
+      "scale_factor": 10,
+      "values": {
+        "0-5cm": null,
+        "5-15cm": null,
+        "15-30cm": null,
+        "30-60cm": null
+      }
+    },
+    {
+      "property": "sand",
+      "unit": "%",
+      "scale_factor": 10,
+      "values": {
+        "0-5cm": null,
+        "5-15cm": null,
+        "15-30cm": null,
+        "30-60cm": null
+      }
+    },
+    {
+      "property": "silt",
+      "unit": "%",
+      "scale_factor": 10,
+      "values": {
+        "0-5cm": null,
+        "5-15cm": null,
+        "15-30cm": null,
+        "30-60cm": null
+      }
+    },
+    {
+      "property": "soc",
+      "unit": "g/kg",
+      "scale_factor": 10,
+      "values": {
+        "0-5cm": null,
+        "5-15cm": null,
+        "15-30cm": null,
+        "30-60cm": null
+      }
+    }
+  ],
+  "notes": [
+    "SoilGrids predictions are not farmer measurements.",
+    "Soil salinity EC and irrigation-water EC are intentionally absent and must be supplied separately.",
+    "Null values are returned by the service and were not imputed."
+  ]
+}

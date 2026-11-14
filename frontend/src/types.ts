@@ -1,6 +1,9 @@
-export type Stage = 'concentrating' | 'crystallizing' | 'ready';
-export interface SaltField { id: string; name: string; area_m2: number; stage: Stage; days_to_harvest: number; expected_value_vnd: number; protection_cost_vnd: number; protection_available: boolean; }
-export interface ScenarioRequest { fields: SaltField[]; rain_mm: number; hours_until_rain: number; available_workers: number; available_budget_vnd: number; }
-export interface ActionOption { action: 'harvest_early'|'protect'|'continue'|'postpone'; field_id: string; priority: number; rationale: string[]; estimated_cost_vnd: number; assumption: string; }
-export interface CompareResponse { scenario: { rain_mm:number; hours_until_rain:number }; actions: ActionOption[]; warnings: string[]; provenance: { climate_source:string; source_type:string; forecast_available:boolean }; }
-export interface ClimateSummary { station: string; years: string; source: string; status: string; monthly: Array<{month:number; mean_rain_mm:number; mean_temp_c:number}>; }
+export type Strategy='current_practice'|'water_saving'|'soil_recovery';
+export type Status='PASS'|'FAIL'|'UNKNOWN';
+export interface FarmProfile {current_crop:string; farm_area_ha:number; soil_ph:number|null; soil_salinity_ec:number|null; irrigation_water_ec:number|null; irrigation_available:boolean|null; freshwater_availability:'unknown'|'limited'|'adequate'; farmer_priority:'yield'|'water'|'soil'|'income'|'risk'; planting_date:string|null}
+export interface Crop {crop_id:string; crop_name:string; source_references?:string[]; source_reference?:string}
+export interface ClimateSummary {source?:string; status?:string; period?:{start:string;end:string}; forecast_available?:boolean; monthly_metrics?:unknown[]; [key:string]:unknown}
+export interface SoilProfile {status?:string; diagnostics?:{null_value_count?:number;coverage_interpretation?:string}; [key:string]:unknown}
+export interface Recommendation {sequence:string[]; crop_id:string; crop_name:string; strategy:Strategy; eligibility:Status; score:number|null; growth_duration_days:number|null; hard_constraints_pass:Status; suitability:Record<string,Status>; rationale:string[]; warnings:string[]; sources:string[]}
+export interface RejectedAlternative {crop_id:string; sequence:string[]; eligibility:Status; reasons:string[]; sources:string[]}
+export interface CompareResponse {recommendations:Recommendation[]; rejected_alternatives:RejectedAlternative[]; missing_data_warnings:string[]; warnings:string[]; provenance:{forecast_available:boolean; climate_period?:string; soil_status?:string; [key:string]:unknown}; scoring:Record<string,unknown>}
