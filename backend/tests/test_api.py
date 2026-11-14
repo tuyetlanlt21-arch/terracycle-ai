@@ -6,6 +6,15 @@ import app.main as main
 import app.services.decision as decision
 from app.main import app
 client=TestClient(app)
+
+@pytest.mark.parametrize(("raw", "expected"), [
+    (None, []),
+    ("", []),
+    (" https://saltshift.example , http://localhost:5173, http://127.0.0.1:5173 ", ["https://saltshift.example", "http://localhost:5173", "http://127.0.0.1:5173"]),
+])
+def test_cors_origins_are_explicit_and_trimmed(raw, expected):
+    assert main.parse_cors_origins(raw) == expected
+
 def test_health_and_contract():
     assert client.get("/health").json()["status"]=="ok"
     response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"unknown","farm_area_ha":1},"strategy":"water_saving","candidate_crop_ids":["crop-unknown"]})
@@ -196,6 +205,58 @@ def test_missing_daily_climate_file_leaves_suitability_unknown(tmp_path, monkeyp
     assert item["eligibility"]=="UNKNOWN"
     assert item["suitability"]["temperature"]=="UNKNOWN"
     assert any("daily dataset is unavailable" in warning for warning in response.json()["missing_data_warnings"])
+
+def test_compare_with_available_farm_inputs_returns_sourced_assessment():
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01","soil_ph":6.0,"soil_salinity_ec":1.0,"irrigation_water_ec":0.5,"irrigation_available":True,"freshwater_availability":"adequate"},"strategy":"current_practice","candidate_crop_ids":["rice"]})
+    assert response.status_code==200
+    item=response.json()["recommendations"][0]
+    assert item["suitability"]["temperature"]=="PASS"
+    assert item["suitability"]["soil"]=="PASS"
+    assert item["suitability"]["salinity"]=="PASS"
+    assert item["suitability"]["rainfall_window"]=="UNKNOWN"
+    assert item["score"] is None
+
+def test_compare_with_missing_soil_measurements_keeps_soil_unknown():
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01","soil_ph":None,"soil_salinity_ec":None,"irrigation_water_ec":None,"irrigation_available":None},"strategy":"soil_recovery","candidate_crop_ids":["rice"]})
+    assert response.status_code==200
+    body=response.json()
+    item=body["recommendations"][0]
+    assert item["eligibility"]=="UNKNOWN"
+    assert item["suitability"]["soil"]=="UNKNOWN"
+    assert item["suitability"]["salinity"]=="UNKNOWN"
+    assert item["score"] is None
+    assert body["provenance"]["soil_status"]=="no_values"
+
+def test_planting_date_outside_climate_coverage_returns_unknown_not_server_error():
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2019-12-01"},"strategy":"current_practice","candidate_crop_ids":["rice"]})
+    assert response.status_code==200
+    item=response.json()["recommendations"][0]
+    assert item["eligibility"]=="UNKNOWN"
+    assert item["suitability"]["temperature"]=="UNKNOWN"
+    assert item["score"] is None
+    assert any("daily climate coverage is incomplete" in warning for warning in response.json()["missing_data_warnings"])
+
+def test_unsupported_crop_transition_is_returned_as_rejected_alternative():
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice","candidate_crop_ids":["maize"]})
+    assert response.status_code==200
+    body=response.json()
+    assert body["recommendations"]==[]
+    rejected=body["rejected_alternatives"][0]
+    assert rejected["crop_id"]=="maize"
+    assert rejected["eligibility"]=="FAIL"
+    assert any("no supported transition" in reason for reason in rejected["reasons"])
+
+@pytest.mark.parametrize("strategy", ["current_practice", "water_saving", "soil_recovery"])
+def test_every_strategy_returns_unknown_when_required_evidence_is_missing(strategy):
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"soil_ph":None,"soil_salinity_ec":None,"irrigation_water_ec":None,"irrigation_available":None},"strategy":strategy,"candidate_crop_ids":["rice"]})
+    assert response.status_code==200
+    body=response.json()
+    item=body["recommendations"][0]
+    assert item["strategy"]==strategy
+    assert item["eligibility"]=="UNKNOWN"
+    assert item["hard_constraints_pass"]=="UNKNOWN"
+    assert item["score"] is None
+    assert "UNKNOWN" in item["suitability"].values()
 
 def test_crop_catalog_with_missing_required_record_field_is_data_error(tmp_path, monkeypatch):
     records=[{"crop_id":crop_id,"crop_name":crop_id} for crop_id in ("rice","maize","mung_bean","soybean")]
