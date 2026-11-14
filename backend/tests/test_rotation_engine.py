@@ -122,3 +122,11 @@ def test_window_handles_unreadable_daily_dataset(tmp_path, monkeypatch):
     frame,reason=decision._window(date(2024,1,1),1)
     assert frame is None
     assert reason=="NASA POWER daily dataset could not be read"
+
+def test_window_treats_unrepresentable_date_range_as_unavailable(tmp_path, monkeypatch):
+    dataset=tmp_path/"daily.csv"
+    dataset.write_text("date,temperature_avg_c,precipitation_mm_day\n2024-01-01,20,1\n",encoding="utf-8")
+    monkeypatch.setattr(decision,"DAILY",dataset)
+    frame,reason=decision._window(date(9999,12,31),2)
+    assert frame is None
+    assert "cannot be represented" in reason

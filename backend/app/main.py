@@ -14,7 +14,7 @@ logger=logging.getLogger(__name__)
 def _read_reference_json(path: Path) -> dict:
     try:
         data=json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ReferenceDataError("reference dataset is unavailable or invalid") from exc
     if not isinstance(data,dict): raise ReferenceDataError("reference dataset must be a JSON object")
     return data

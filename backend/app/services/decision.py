@@ -1,8 +1,9 @@
 """Time-basis-aware, evidence-driven crop rotation assessment."""
 from __future__ import annotations
 import json
+import math
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 import pandas as pd
@@ -20,20 +21,45 @@ class ClimateDataError(RuntimeError):
 class ReferenceDataError(RuntimeError):
     """A required crop, rule, or soil reference dataset is missing or unusable."""
 
+def _is_finite_number(value: Any) -> bool:
+    if not isinstance(value,(int,float)) or isinstance(value,bool): return False
+    try: return math.isfinite(value)
+    except OverflowError: return False
+
 def validate_crop_catalog(catalog: dict[str, Any]) -> None:
     records=catalog.get("records")
     if not isinstance(records,list): raise ReferenceDataError("crop catalog records must be a list")
     if any(not isinstance(record,dict) for record in records): raise ReferenceDataError("crop catalog records must be objects")
     if any(not isinstance(record.get("crop_id"),str) or not record["crop_id"].strip() for record in records): raise ReferenceDataError("crop catalog records require crop_id")
     if any(not isinstance(record.get("crop_name"),str) or not record["crop_name"].strip() for record in records): raise ReferenceDataError("crop catalog records require crop_name")
-    if any(not isinstance(record.get("source_references",[]),list) for record in records): raise ReferenceDataError("crop catalog source_references must be lists")
+    if any(not isinstance(record.get("source_references",[]),list) or any(not isinstance(source,str) for source in record.get("source_references",[])) for record in records): raise ReferenceDataError("crop catalog source_references must be lists of strings")
     if any(not isinstance(record.get(key,{}),dict) for record in records for key in ("temperature","soil_ph","growth_duration","rainfall","water_requirement","soil_characteristics","legume")):
         raise ReferenceDataError("crop catalog assessment sections must be objects")
     for record in records:
-        for section in ("temperature","soil_ph"):
+        for section,keys in (("temperature",("min_c","max_c")),("soil_ph",("min","max"))):
             value=record.get(section,{})
             if any(not isinstance(value.get(bound,{}),dict) for bound in ("optimal","absolute")):
                 raise ReferenceDataError(f"crop catalog {section} thresholds must be objects")
+            for bound in ("optimal","absolute"):
+                if any(key in value[bound] and value[bound][key] is not None and not _is_finite_number(value[bound][key]) for key in keys):
+                    raise ReferenceDataError(f"crop catalog {section} thresholds must be finite numbers")
+        duration=record.get("growth_duration",{})
+        for key in ("min_days","max_days"):
+            value=duration.get(key)
+            if value is not None and (not isinstance(value,int) or isinstance(value,bool) or value<=0):
+                raise ReferenceDataError("crop growth durations must be positive integer days or null")
+        water=record.get("water_requirement",{})
+        sensitivity=water.get("drought_sensitivity","unknown")
+        if not isinstance(sensitivity,str) or sensitivity not in {"low","low-medium","medium","medium-high","high","unknown"}:
+            raise ReferenceDataError("crop drought_sensitivity has an unsupported value")
+        for key in ("min_mm_season","max_mm_season"):
+            value=water.get(key)
+            if value is not None and (not _is_finite_number(value) or value<0):
+                raise ReferenceDataError("seasonal water requirements must be non-negative finite numbers or null")
+        for section in ("temperature","soil_ph","growth_duration","water_requirement","soil_characteristics","legume"):
+            value=record.get(section,{})
+            if "source_url" in value and value["source_url"] is not None and not isinstance(value["source_url"],str):
+                raise ReferenceDataError(f"crop catalog {section} source_url must be a string or null")
 
 def validate_rotation_rules(rules: dict[str, Any]) -> None:
     compatibility=rules.get("compatibility",[])
@@ -41,23 +67,38 @@ def validate_rotation_rules(rules: dict[str, Any]) -> None:
     for rule in compatibility:
         if not isinstance(rule,dict) or any(not isinstance(rule.get(key),str) for key in ("from","to","classification")):
             raise ReferenceDataError("rotation compatibility entries require from, to, and classification")
-        if not isinstance(rule.get("source_urls",[]),list): raise ReferenceDataError("rotation rule source_urls must be a list")
+        if not isinstance(rule.get("source_urls",[]),list) or any(not isinstance(source,str) for source in rule.get("source_urls",[])):
+            raise ReferenceDataError("rotation rule source_urls must be lists of strings")
     windows=rules.get("planting_windows",{})
     if not isinstance(windows,dict): raise ReferenceDataError("planting_windows must be an object")
     for window in windows.values():
         if isinstance(window,list):
             for item in window:
-                if not isinstance(item,dict) or not isinstance(item.get("start_month"),int) or not isinstance(item.get("end_month"),int):
+                if not isinstance(item,dict) or type(item.get("start_month")) is not int or type(item.get("end_month")) is not int:
                     raise ReferenceDataError("planting window entries require start_month and end_month")
                 if not 1<=item["start_month"]<=12 or not 1<=item["end_month"]<=12:
                     raise ReferenceDataError("planting window months must be between 1 and 12")
+                if "source_url" in item and item["source_url"] is not None and not isinstance(item["source_url"],str):
+                    raise ReferenceDataError("planting window source_url must be a string or null")
         elif not isinstance(window,dict):
             raise ReferenceDataError("planting window values must be objects or lists")
+        else:
+            if "source_url" in window and window["source_url"] is not None and not isinstance(window["source_url"],str):
+                raise ReferenceDataError("planting window source_url must be a string or null")
+            if "note" in window and window["note"] is not None and not isinstance(window["note"],str):
+                raise ReferenceDataError("planting window note must be a string or null")
 
 def validate_climate_summary(summary: dict[str, Any]) -> None:
     period=summary.get("period")
     if period is not None and (not isinstance(period,dict) or not isinstance(period.get("start"),str) or not isinstance(period.get("end"),str)):
         raise ClimateDataError("climate summary period must contain string start and end dates")
+    if period is not None:
+        try:
+            start=datetime.strptime(period["start"],"%Y%m%d").date()
+            end=datetime.strptime(period["end"],"%Y%m%d").date()
+        except ValueError as exc:
+            raise ClimateDataError("climate summary dates must use YYYYMMDD format") from exc
+        if end<start: raise ClimateDataError("climate summary end date precedes start date")
     if "source_url" in summary and summary["source_url"] is not None and not isinstance(summary["source_url"],str):
         raise ClimateDataError("climate summary source_url must be a string")
 
@@ -65,10 +106,11 @@ def _provenance(summary: dict[str, Any], climate_period: str | None) -> Provenan
     soil_path=ROOT/"data/processed/soil/soilgrids_profile.json"
     try:
         soil_profile=json.loads(soil_path.read_text(encoding="utf-8")) if soil_path.exists() else {}
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ReferenceDataError("soil profile data is unavailable or invalid") from exc
     if not isinstance(soil_profile,dict): raise ReferenceDataError("soil profile data must be a JSON object")
     soil_status=soil_profile.get("status","unavailable")
+    if soil_status is not None and not isinstance(soil_status,str): raise ReferenceDataError("soil profile status must be a string or null")
     return Provenance(climate_source="NASA POWER",climate_period=climate_period,climate_source_url=summary.get("source_url") or None,soil_status=soil_status,forecast_available=False)
 
 def _scoring_metadata() -> ScoringMetadata:
@@ -78,7 +120,7 @@ def _load():
     try:
         catalog=json.loads(CATALOG.read_text(encoding="utf-8"))
         rules=json.loads(RULES.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ReferenceDataError("crop catalog or rotation rules are unavailable or invalid") from exc
     if not isinstance(catalog,dict): raise ReferenceDataError("crop catalog must be an object")
     validate_crop_catalog(catalog)
@@ -92,7 +134,7 @@ def _load():
     climate_path=CLIMATE if CLIMATE.exists() else ROOT/"shared/fixtures/climate-placeholder.json"
     try:
         summary=json.loads(climate_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ClimateDataError("historical climate summary is unavailable or invalid") from exc
     if not isinstance(summary,dict): raise ClimateDataError("historical climate summary must be a JSON object")
     validate_climate_summary(summary)
@@ -112,8 +154,12 @@ def _window(start: date|None, days: int|None) -> tuple[pd.DataFrame|None,str]:
     if missing_columns: return None,"NASA POWER daily dataset is missing required climate columns: "+", ".join(sorted(missing_columns))
     frame["date"]=pd.to_datetime(frame["date"],errors="coerce")
     if frame["date"].isna().any(): return None,"NASA POWER daily dataset contains invalid dates"
-    end=start+timedelta(days=days-1); selection=frame[(frame.date.dt.date>=start)&(frame.date.dt.date<=end)]
-    expected_dates=set(pd.date_range(start=start,end=end).date)
+    try:
+        end=start+timedelta(days=days-1)
+        expected_dates=set(pd.date_range(start=start,end=end).date)
+    except (OverflowError, ValueError):
+        return None,"daily climate date range cannot be represented"
+    selection=frame[(frame.date.dt.date>=start)&(frame.date.dt.date<=end)]
     selected_dates=selection.date.dt.date
     if selected_dates.duplicated().any() or set(selected_dates)!=expected_dates:
         return None,f"daily climate coverage is incomplete for {start.isoformat()} to {end.isoformat()}"

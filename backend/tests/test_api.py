@@ -231,3 +231,101 @@ def test_crop_endpoint_rejects_records_with_invalid_shape(tmp_path, monkeypatch)
     response=client.get("/api/crops")
     assert response.status_code==503
     assert response.json()=={"detail":"Reference data is unavailable."}
+
+@pytest.mark.parametrize("malformed_value", ["long", []])
+def test_crop_catalog_invalid_growth_duration_is_data_error(tmp_path, monkeypatch, malformed_value):
+    catalog=json.loads(decision.CATALOG.read_text(encoding="utf-8"))
+    catalog["records"][0]["growth_duration"]["max_days"]=malformed_value
+    path=tmp_path/"crop_catalog.json"
+    path.write_text(json.dumps(catalog),encoding="utf-8")
+    monkeypatch.setattr(decision,"CATALOG",path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01"},"strategy":"current_practice","candidate_crop_ids":["rice"]})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_crop_catalog_source_references_must_be_strings(tmp_path, monkeypatch):
+    catalog=json.loads(decision.CATALOG.read_text(encoding="utf-8"))
+    catalog["records"][0]["source_references"].append(42)
+    path=tmp_path/"crop_catalog.json"
+    path.write_text(json.dumps(catalog),encoding="utf-8")
+    monkeypatch.setattr(decision,"CATALOG",path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_rotation_rule_source_urls_must_be_strings(tmp_path, monkeypatch):
+    rules=json.loads(decision.RULES.read_text(encoding="utf-8"))
+    rules["compatibility"][0]["source_urls"].append(42)
+    path=tmp_path/"rotation_rules.json"
+    path.write_text(json.dumps(rules),encoding="utf-8")
+    monkeypatch.setattr(decision,"RULES",path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_rotation_rule_planting_window_source_url_must_be_string(tmp_path, monkeypatch):
+    rules=json.loads(decision.RULES.read_text(encoding="utf-8"))
+    rules["planting_windows"]["rice"][0]["source_url"]=42
+    path=tmp_path/"rotation_rules.json"
+    path.write_text(json.dumps(rules),encoding="utf-8")
+    monkeypatch.setattr(decision,"RULES",path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01"},"strategy":"current_practice","candidate_crop_ids":["rice"]})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_invalid_utf8_reference_file_is_reported_as_data_error(tmp_path, monkeypatch):
+    catalog=tmp_path/"data/reference/crop_catalog.json"
+    catalog.parent.mkdir(parents=True)
+    catalog.write_bytes(bytes([255]))
+    monkeypatch.setattr(main,"ROOT",tmp_path)
+    safe_client=TestClient(app,raise_server_exceptions=False)
+    response=safe_client.get("/api/crops")
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_crop_catalog_invalid_drought_sensitivity_is_data_error(tmp_path, monkeypatch):
+    catalog=json.loads(decision.CATALOG.read_text(encoding="utf-8"))
+    catalog["records"][0]["water_requirement"]["drought_sensitivity"]=[]
+    path=tmp_path/"crop_catalog.json"
+    path.write_text(json.dumps(catalog),encoding="utf-8")
+    monkeypatch.setattr(decision,"CATALOG",path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"water_saving","candidate_crop_ids":["rice"]})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_crop_catalog_invalid_water_requirement_is_data_error(tmp_path, monkeypatch):
+    catalog=json.loads(decision.CATALOG.read_text(encoding="utf-8"))
+    catalog["records"][0]["water_requirement"]["max_mm_season"]="high"
+    path=tmp_path/"crop_catalog.json"
+    path.write_text(json.dumps(catalog),encoding="utf-8")
+    monkeypatch.setattr(decision,"CATALOG",path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"water_saving","candidate_crop_ids":["rice","maize"]})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_rotation_rule_invalid_window_note_is_data_error(tmp_path, monkeypatch):
+    rules=json.loads(decision.RULES.read_text(encoding="utf-8"))
+    rules["planting_windows"]["maize"]["note"]=[]
+    path=tmp_path/"rotation_rules.json"
+    path.write_text(json.dumps(rules),encoding="utf-8")
+    monkeypatch.setattr(decision,"RULES",path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01"},"strategy":"current_practice","candidate_crop_ids":["maize"]})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_invalid_soil_profile_status_is_data_error(tmp_path, monkeypatch):
+    soil=tmp_path/"data/processed/soil/soilgrids_profile.json"
+    soil.parent.mkdir(parents=True)
+    soil.write_text(json.dumps({"status":[]}),encoding="utf-8")
+    monkeypatch.setattr(decision,"ROOT",tmp_path)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice","candidate_crop_ids":["rice"]})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_climate_summary_invalid_date_string_is_data_error(tmp_path, monkeypatch):
+    summary=tmp_path/"climate_summary.json"
+    summary.write_text(json.dumps({"period":{"start":"spring","end":"20251231"}}),encoding="utf-8")
+    monkeypatch.setattr(decision,"CLIMATE",summary)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Climate summary data is unavailable."}
