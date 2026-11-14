@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import type {FarmProfile} from './types';
+import type {FarmProfile,Provenance} from './types';
 
 const palette: Record<FarmProfile['farmer_priority'], [number, number, number, number]> = {
   soil: [106, 240, 201, .15], water: [100, 221, 255, .21],
@@ -12,7 +12,7 @@ const radians = Math.PI / 180;
 type LandPoint = { lat: number; lon: number; brightness: number };
 type Particle = { angle: number; radius: number; phase: number; size: number; color: number };
 
-export function FarmGlobe({priority, crop}: {priority: FarmProfile['farmer_priority']; crop: string}) {
+export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['farmer_priority']; crop: string; provenance?: Provenance}) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const target = useRef(palette[priority]);
   const drag = useRef<{x: number; id: number} | null>(null);
@@ -21,11 +21,15 @@ export function FarmGlobe({priority, crop}: {priority: FarmProfile['farmer_prior
   const [location, setLocation] = useState<GlobeLocation | null>(null);
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
+  const [liveProvenance, setLiveProvenance] = useState<Provenance | undefined>(provenance);
+  const [coordinateDraft, setCoordinateDraft] = useState<{latitude?: number; longitude?: number}>({});
   const locator = useRef<HTMLButtonElement>(null);
   const close = useRef<HTMLButtonElement>(null);
   const request = useRef<AbortController | null>(null);
+  const view = useRef({cx: 0, cy: 0, radius: 1, centerLat: 15 * radians, rotation: 107 * radians});
 
   useEffect(() => () => request.current?.abort(), []);
+  useEffect(() => { const handler=(event:Event)=>setLiveProvenance((event as CustomEvent<Provenance>).detail); window.addEventListener('terracycle-provenance',handler); return()=>window.removeEventListener('terracycle-provenance',handler); }, []);
   useEffect(() => {
     if (!location) return;
     close.current?.focus();
@@ -56,6 +60,7 @@ export function FarmGlobe({priority, crop}: {priority: FarmProfile['farmer_prior
     navigator.geolocation.getCurrentPosition(async ({coords}) => {
       if (controller.signal.aborted) return;
       const {latitude, longitude} = coords;
+      window.dispatchEvent(new CustomEvent('terracycle-location',{detail:{latitude,longitude}}));
       const point = {lat: latitude * radians, lon: longitude * radians, label: ''};
       focus.current = point;
       setLocation(point);
@@ -156,6 +161,7 @@ export function FarmGlobe({priority, crop}: {priority: FarmProfile['farmer_prior
       const rgb = color.slice(0,3).map(Math.round).join(',');
       const tint = (alpha:number) => `rgba(${rgb},${alpha})`;
       const cx=width/2, cy=height/2, r=Math.min(width*.34,height*.33)*zoom;
+      view.current={cx,cy,radius:r,centerLat,rotation:angle+yaw.current};
       ctx.clearRect(0,0,width,height);
       if (r > 0) {
         const glow=ctx.createRadialGradient(cx,cy,r*.72,cx,cy,r*1.65);
@@ -240,7 +246,7 @@ export function FarmGlobe({priority, crop}: {priority: FarmProfile['farmer_prior
       if (location && event.key === 'Escape') exitLocation();
       if (location && event.key === 'Tab') { event.preventDefault(); close.current?.focus(); }
     }} aria-label={location ? "Device location on Earth" : "Interactive globe highlighting Vietnam"}>
-    <canvas ref={canvas} tabIndex={location ? -1 : 0} aria-label="Rotate the globe with the arrow keys" onKeyDown={event=>{
+    <canvas ref={canvas} tabIndex={location ? -1 : 0} aria-label="Rotate the globe with the arrow keys" onDoubleClick={event=>{const box=event.currentTarget.getBoundingClientRect();const camera=view.current;const x=(event.clientX-box.left-camera.cx)/camera.radius;const y=-(event.clientY-box.top-camera.cy)/camera.radius;const rho2=x*x+y*y;if(rho2>1)return;const z=Math.sqrt(Math.max(0,1-rho2));const sinC=Math.sin(camera.centerLat),cosC=Math.cos(camera.centerLat);const sinLat=cosC*y+sinC*z;const q=-sinC*y+cosC*z;const delta=Math.atan2(x,q);const latitude=Math.asin(Math.max(-1,Math.min(1,sinLat)))/radians;const longitude=((camera.rotation+delta)/radians+540)%360-180;window.dispatchEvent(new CustomEvent('terracycle-location',{detail:{latitude:Number(latitude.toFixed(6)),longitude:Number(longitude.toFixed(6))}}));}} onKeyDown={event=>{
       if(!location && (event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();yaw.current+=event.key==='ArrowLeft'?-.18:.18;}
     }} onPointerDown={event=>{if(location) return;drag.current={x:event.clientX,id:event.pointerId};event.currentTarget.setPointerCapture(event.pointerId);}}
     onPointerMove={event=>{if(drag.current?.id===event.pointerId){yaw.current+=(event.clientX-drag.current.x)*.012;drag.current.x=event.clientX;}}}
@@ -253,6 +259,8 @@ export function FarmGlobe({priority, crop}: {priority: FarmProfile['farmer_prior
       {location && <strong>{location.label || `${(location.lat/radians).toFixed(3)}°, ${(location.lon/radians).toFixed(3)}°`}</strong>}
       <div role="status">{status}</div>
       {!location && <small>Shares coordinates with BigDataCloud for place names.</small>}
+      {liveProvenance && <div className="globe-provenance"><b>Evaluated location</b><span>{liveProvenance.evaluated_location ? `${liveProvenance.evaluated_location.latitude}, ${liveProvenance.evaluated_location.longitude}` : 'not provided'}</span><span>NASA: {liveProvenance.availability?.climate || 'unknown'} · SoilGrids: {liveProvenance.availability?.soil || liveProvenance.soil_status || 'unknown'}</span><span>Period: {liveProvenance.climate_period || 'unknown'} · Rules: {liveProvenance.rule_set || 'unknown'}</span><span>Scope: {liveProvenance.supported_scope || 'unknown'}</span>{liveProvenance.applicability_reason && <span>{liveProvenance.applicability_reason}</span>}{(liveProvenance.warnings || []).map(warning => <span key={warning}>{warning}</span>)}</div>}
+      {!location && <div className="globe-coordinates"><label>Latitude <input type="number" min="-90" max="90" step="0.000001" placeholder="Latitude" value={coordinateDraft.latitude??''} onChange={event=>{const latitude=event.target.value===''?undefined:Number(event.target.value);const next={...coordinateDraft,latitude};setCoordinateDraft(next);window.dispatchEvent(new CustomEvent('terracycle-location',{detail:next}))}}/></label><label>Longitude <input type="number" min="-180" max="180" step="0.000001" placeholder="Longitude" value={coordinateDraft.longitude??''} onChange={event=>{const longitude=event.target.value===''?undefined:Number(event.target.value);const next={...coordinateDraft,longitude};setCoordinateDraft(next);window.dispatchEvent(new CustomEvent('terracycle-location',{detail:next}))}}/></label></div>}
     </div>
     <span className="telemetry telemetry-smap">SMAP Moisture</span>
     <span className="telemetry telemetry-eco">ECOSTRESS LST</span>

@@ -72,5 +72,5 @@ def crops():
 def soil_profile():
     path=ROOT/"data/processed/soil/soilgrids_profile.json"
     return _read_reference_json(path) if path.exists() else {"status":"unavailable","properties":[],"notes":["Run the SoilGrids adapter with coordinates; no values are fabricated."]}
-@app.post("/api/rotations/compare",response_model=RotationCompareResponse)
+@app.post("/api/rotations/compare",response_model=RotationCompareResponse,response_model_exclude_defaults=True)
 def rotations_compare(request: RotationScenario): return compare_rotation(request)

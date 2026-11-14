@@ -29,6 +29,25 @@ cp backend/.env.example backend/.env
 PYTHONPATH=backend .venv/bin/python -m uvicorn app.main:app --app-dir backend --env-file backend/.env --reload --host 127.0.0.1 --port 8000
 ```
 
+## BE-LOC-01 location contract
+
+`POST /api/rotations/compare` accepts optional `farm.latitude` and
+`farm.longitude`. They must be supplied together and are validated as
+latitude `[-90, 90]`, longitude `[-180, 180]`; omitting both preserves the
+legacy request contract.
+
+When coordinates are supplied, climate and soil artifacts are accepted only
+when their embedded location exactly matches the request. The response
+provenance includes `evaluated_location`, per-source `availability`, and
+location warnings (with `UNKNOWN` suitability when data is unavailable).
+There is intentionally no Long Xuyen fallback. The DS `power.py` and
+`soilgrids.py` adapters remain the ingestion boundary; enable deployment
+fetching with `LOCATION_DATA_FETCH_ENABLED` only after wiring those adapters
+and their cache directory. This backend does not infer regional agronomic
+thresholds.
+
+Current strategy is deterministic and **illustrative**; no probability or measured salt loss is inferred. Data comes from `shared/fixtures`.
+
 The environment file is local configuration and must not be committed. Set
 `CORS_ORIGINS` to a comma-separated list of exact frontend origins. For a hosted
 deployment, set it in the platform environment rather than using localhost.

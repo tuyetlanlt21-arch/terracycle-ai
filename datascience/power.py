@@ -38,6 +38,14 @@ def fetch_power(params: dict[str, str], timeout: float = 30, retries: int = 3, c
             if attempt + 1 < retries: time.sleep(2 ** attempt)
     raise RuntimeError(f"NASA POWER request failed after {retries} attempts: {last}") from last
 
+def fetch_location(latitude: float, longitude: float, start: str, end: str, *, timeout: float = 30, retries: int = 3, cache_dir: Path | None = None) -> dict[str, Any]:
+    """Fetch and normalize one location without changing Rotation Engine fields."""
+    params = build_params(latitude, longitude, start, end)
+    payload = fetch_power(params, timeout=timeout, retries=retries, cache_dir=cache_dir)
+    frame, quality = normalize(payload, latitude, longitude)
+    quality["coverage"] = validate_daily_frame(frame, start, end)
+    return {"location": {"latitude": latitude, "longitude": longitude}, "period": {"start": start, "end": end}, "source": "NASA POWER", "source_url": requests.Request("GET", ENDPOINT, params=params).prepare().url, "retrieval_date": datetime.now(timezone.utc).date().isoformat(), "daily": frame.to_dict(orient="records"), "quality": quality, "availability": "available" if quality["coverage"]["valid"] else "partial", "warnings": [] if quality["coverage"]["valid"] else ["NASA POWER daily coverage is incomplete or contains missing observations."]}
+
 def normalize(payload: dict[str, Any], requested_latitude: float | None = None, requested_longitude: float | None = None) -> tuple[pd.DataFrame, dict[str, Any]]:
     values = payload["properties"]["parameter"]
     if any(not isinstance(values.get(p), dict) for p in PARAMETERS): raise ValueError("Missing required NASA POWER parameter")

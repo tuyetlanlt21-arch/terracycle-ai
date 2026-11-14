@@ -126,8 +126,8 @@ def test_provenance_and_scoring_schemas_are_consistent_for_supported_and_unsuppo
     unsupported=client.post("/api/rotations/compare",json={"farm":{"current_crop":"unknown-crop","farm_area_ha":1},"strategy":"current_practice"}).json()
     expected_provenance={"climate_source","climate_period","climate_source_url","soil_status","forecast_available"}
     expected_scoring={"weights","score_definition","threshold_time_basis","annual_rainfall_policy","window_rainfall_policy"}
-    assert set(valid["provenance"])==expected_provenance
-    assert set(unsupported["provenance"])==expected_provenance
+    assert expected_provenance.issubset(valid["provenance"])
+    assert expected_provenance.issubset(unsupported["provenance"])
     assert set(valid["scoring"])==expected_scoring
     assert set(unsupported["scoring"])==expected_scoring
 
