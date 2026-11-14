@@ -1,6 +1,7 @@
 import type {ClimateSummary,CompareResponse,Crop,FarmProfile,SoilProfile,Strategy} from '../types';
-const BASE=import.meta.env.VITE_API_BASE_URL||'http://localhost:8000';
-async function json<T>(path:string,options?:RequestInit):Promise<T>{const response=await fetch(BASE+path,options);if(!response.ok)throw new Error(`API ${response.status}: ${(await response.text()).slice(0,180)}`);return response.json() as Promise<T>}
+import { requestJson, resolveApiBase } from './request.mjs';
+const BASE=resolveApiBase(import.meta.env.VITE_API_BASE_URL,import.meta.env.DEV);
+async function json<T>(path:string,options?:RequestInit):Promise<T>{if(!BASE)throw new Error('API URL is not configured. Set VITE_API_BASE_URL to the backend HTTPS URL.');return requestJson<T>(path,{baseUrl:BASE,requestOptions:options})}
 export const api={
  climate:()=>json<ClimateSummary>('/api/climate/summary'),
  crops:()=>json<{records:Crop[]}>('/api/crops'),

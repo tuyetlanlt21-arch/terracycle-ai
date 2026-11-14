@@ -7,7 +7,11 @@ from fastapi.responses import JSONResponse
 from app.models import RotationCompareResponse, RotationScenario
 from app.services.decision import ClimateDataError, ReferenceDataError, compare_rotation, validate_climate_summary, validate_crop_catalog
 app=FastAPI(title="TerraCycle AI API",version="1.0.0",description="Climate-adaptive crop rotation decision support; not a forecast")
-app.add_middleware(CORSMiddleware,allow_origins=[v.strip() for v in os.getenv("CORS_ORIGINS","http://localhost:5173").split(",") if v.strip()],allow_methods=["GET","POST"],allow_headers=["Content-Type"])
+
+def parse_cors_origins(value: str | None) -> list[str]:
+    return [origin.strip() for origin in (value or "").split(",") if origin.strip()]
+
+app.add_middleware(CORSMiddleware,allow_origins=parse_cors_origins(os.getenv("CORS_ORIGINS")),allow_methods=["GET","POST"],allow_headers=["Content-Type"])
 ROOT=Path(__file__).resolve().parents[2]
 logger=logging.getLogger(__name__)
 
