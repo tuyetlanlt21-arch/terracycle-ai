@@ -1,4 +1,6 @@
+from datetime import date
 from app.models import FarmProfile, RotationScenario
+import app.services.decision as decision
 from app.services.decision import compare_rotation
 
 def farm(**overrides):
@@ -7,7 +9,7 @@ def farm(**overrides):
 def test_valid_baseline_is_reproducible():
     scenario=RotationScenario(farm=farm(),strategy="current_practice",candidate_crop_ids=["rice"])
     first=compare_rotation(scenario); second=compare_rotation(scenario)
-    assert first.recommendations[0].eligibility=="UNKNOWN"; assert first.recommendations[0].score is None; assert first.recommendations[0].score==second.recommendations[0].score; assert first.provenance["climate_period"]=="20200101–20251231"
+    assert first.recommendations[0].eligibility=="UNKNOWN"; assert first.recommendations[0].score is None; assert first.recommendations[0].score==second.recommendations[0].score; assert first.provenance.climate_period=="20200101–20251231"
 
 def test_incompatible_transition_is_rejected():
     result=compare_rotation(RotationScenario(farm=farm(),strategy="current_practice",candidate_crop_ids=["maize"]))
@@ -15,7 +17,7 @@ def test_incompatible_transition_is_rejected():
 
 def test_missing_soil_and_soilgrids_stay_unknown():
     result=compare_rotation(RotationScenario(farm=farm(soil_ph=None,soil_salinity_ec=None),strategy="soil_recovery",candidate_crop_ids=["rice"]))
-    item=result.recommendations[0]; assert item.eligibility=="UNKNOWN"; assert item.score is None; assert result.provenance["soil_status"]=="no_values"
+    item=result.recommendations[0]; assert item.eligibility=="UNKNOWN"; assert item.score is None; assert result.provenance.soil_status=="no_values"
 
 def test_unknown_calendar_and_missing_mung_water_are_not_pass():
     result=compare_rotation(RotationScenario(farm=farm(),strategy="water_saving",candidate_crop_ids=["rice","mung_bean"]))
@@ -28,7 +30,7 @@ def test_no_eligible_alternatives_is_explicit():
 def test_annual_rainfall_is_not_applied_to_seasonal_mung_window():
     scenario=RotationScenario(farm=farm(planting_date="2025-01-01"),strategy="water_saving",candidate_crop_ids=["mung_bean"])
     result=compare_rotation(scenario); item=result.recommendations[0]
-    assert item.eligibility=="UNKNOWN"; assert item.suitability["rainfall_window"]=="UNKNOWN"; assert not any("outside the absolute range" in x for x in item.rationale)
+    assert item.eligibility=="UNKNOWN"; assert item.suitability.rainfall_window=="UNKNOWN"; assert not any("outside the absolute range" in x for x in item.rationale)
 
 def test_missing_planting_date_keeps_time_suitability_unknown():
     result=compare_rotation(RotationScenario(farm=farm(planting_date=None),strategy="current_practice",candidate_crop_ids=["rice"]))
@@ -36,7 +38,7 @@ def test_missing_planting_date_keeps_time_suitability_unknown():
 
 def test_window_uses_daily_precipitation_and_growth_duration():
     result=compare_rotation(RotationScenario(farm=farm(planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
-    item=result.recommendations[0]; assert "growing-window precipitation is" in " ".join(item.rationale); assert item.growth_duration_days==180; assert item.suitability["rainfall_window"]=="UNKNOWN"
+    item=result.recommendations[0]; assert "growing-window precipitation is" in " ".join(item.rationale); assert item.growth_duration_days==180; assert item.suitability.rainfall_window=="UNKNOWN"
 
 def test_high_salinity_is_hard_failure_and_freshwater_shortage_is_not_pass():
     result=compare_rotation(RotationScenario(farm=farm(soil_salinity_ec=4.0, irrigation_available=False, freshwater_availability="limited"),strategy="water_saving",candidate_crop_ids=["rice"]))
@@ -63,10 +65,10 @@ def test_strategy_order_changes_with_supported_evidence_and_priority():
 def test_fully_evidenced_constraints_still_expose_unverified_rainfall_basis():
     result=compare_rotation(RotationScenario(farm=farm(planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
     item=result.recommendations[0]
-    assert item.suitability["temperature"] == "PASS"
-    assert item.suitability["soil"] == "PASS"
-    assert item.suitability["salinity"] == "PASS"
-    assert item.suitability["rainfall_window"] == "UNKNOWN"
+    assert item.suitability.temperature == "PASS"
+    assert item.suitability.soil == "PASS"
+    assert item.suitability.salinity == "PASS"
+    assert item.suitability.rainfall_window == "UNKNOWN"
     assert item.score is None
 
 def test_deterministic_end_to_end_scenarios():
@@ -79,6 +81,52 @@ def test_deterministic_end_to_end_scenarios():
     ]
     for profile,strategy,candidates in scenarios:
         result=compare_rotation(RotationScenario(farm=profile,strategy=strategy,candidate_crop_ids=candidates))
-        assert result.provenance["climate_source"] == "NASA POWER"
-        assert result.provenance["forecast_available"] is False
+        assert result.provenance.climate_source == "NASA POWER"
+        assert result.provenance.forecast_available is False
         assert result.recommendations or result.rejected_alternatives
+
+def test_window_rejects_duplicate_dates_that_mask_missing_coverage(tmp_path, monkeypatch):
+    dataset=tmp_path/"daily.csv"
+    dataset.write_text("date,temperature_avg_c,precipitation_mm_day\n2024-01-01,20,1\n2024-01-01,21,2\n",encoding="utf-8")
+    monkeypatch.setattr(decision,"DAILY",dataset)
+    frame,reason=decision._window(date(2024,1,1),2)
+    assert frame is None
+    assert "coverage is incomplete" in reason
+
+def test_window_handles_dataset_without_date_column(tmp_path, monkeypatch):
+    dataset=tmp_path/"daily.csv"
+    dataset.write_text("day,temperature_avg_c,precipitation_mm_day\n2024-01-01,20,1\n",encoding="utf-8")
+    monkeypatch.setattr(decision,"DAILY",dataset)
+    frame,reason=decision._window(date(2024,1,1),1)
+    assert frame is None
+    assert "date column" in reason
+
+def test_window_rejects_missing_values_in_daily_climate_metrics(tmp_path, monkeypatch):
+    dataset=tmp_path/"daily.csv"
+    dataset.write_text("date,temperature_avg_c,precipitation_mm_day\n2024-01-01,20,1\n2024-01-02,,2\n",encoding="utf-8")
+    monkeypatch.setattr(decision,"DAILY",dataset)
+    frame,reason=decision._window(date(2024,1,1),2)
+    assert frame is None
+    assert "missing climate values" in reason
+
+def test_window_reports_missing_daily_dataset(tmp_path, monkeypatch):
+    monkeypatch.setattr(decision,"DAILY",tmp_path/"missing.csv")
+    frame,reason=decision._window(date(2024,1,1),1)
+    assert frame is None
+    assert reason=="NASA POWER daily dataset is unavailable"
+
+def test_window_handles_unreadable_daily_dataset(tmp_path, monkeypatch):
+    dataset=tmp_path/"daily.csv"
+    dataset.write_text("",encoding="utf-8")
+    monkeypatch.setattr(decision,"DAILY",dataset)
+    frame,reason=decision._window(date(2024,1,1),1)
+    assert frame is None
+    assert reason=="NASA POWER daily dataset could not be read"
+
+def test_window_treats_unrepresentable_date_range_as_unavailable(tmp_path, monkeypatch):
+    dataset=tmp_path/"daily.csv"
+    dataset.write_text("date,temperature_avg_c,precipitation_mm_day\n2024-01-01,20,1\n",encoding="utf-8")
+    monkeypatch.setattr(decision,"DAILY",dataset)
+    frame,reason=decision._window(date(9999,12,31),2)
+    assert frame is None
+    assert "cannot be represented" in reason

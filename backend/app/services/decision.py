@@ -1,27 +1,171 @@
 """Time-basis-aware, evidence-driven crop rotation assessment."""
 from __future__ import annotations
 import json
+import math
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 import pandas as pd
-from app.models import RejectedAlternative, RotationCompareResponse, RotationRecommendation, RotationScenario
+from app.models import Provenance, RejectedAlternative, RotationCompareResponse, RotationRecommendation, RotationScenario, ScoringMetadata
 
 ROOT=Path(__file__).resolve().parents[3]; CATALOG=ROOT/"data/reference/crop_catalog.json"; RULES=ROOT/"data/reference/rotation_rules.json"; CLIMATE=ROOT/"data/processed/power/climate_summary.json"; DAILY=ROOT/"data/processed/power/nasa_power_daily.csv"; WEIGHTS={"temperature":0.4,"water":0.3,"soil":0.3}
+SCORE_DEFINITION="null unless all required time-window, water and soil dimensions are PASS"
+THRESHOLD_TIME_BASIS={"crop_rainfall":"annual mm/year from ECOCROP; context only","crop_water_requirement":"growing-season mm/season from FAO; not irrigation demand"}
+ANNUAL_RAINFALL_POLICY="annual ECOCROP rainfall thresholds are context only; never compared with seasonal totals"
+WINDOW_RAINFALL_POLICY="daily precipitation is summed over planting_date through verified growth duration; no water-demand claim"
+
+class ClimateDataError(RuntimeError):
+    """Historical climate summary data is missing or unusable."""
+
+class ReferenceDataError(RuntimeError):
+    """A required crop, rule, or soil reference dataset is missing or unusable."""
+
+def _is_finite_number(value: Any) -> bool:
+    if not isinstance(value,(int,float)) or isinstance(value,bool): return False
+    try: return math.isfinite(value)
+    except OverflowError: return False
+
+def validate_crop_catalog(catalog: dict[str, Any]) -> None:
+    records=catalog.get("records")
+    if not isinstance(records,list): raise ReferenceDataError("crop catalog records must be a list")
+    if any(not isinstance(record,dict) for record in records): raise ReferenceDataError("crop catalog records must be objects")
+    if any(not isinstance(record.get("crop_id"),str) or not record["crop_id"].strip() for record in records): raise ReferenceDataError("crop catalog records require crop_id")
+    if any(not isinstance(record.get("crop_name"),str) or not record["crop_name"].strip() for record in records): raise ReferenceDataError("crop catalog records require crop_name")
+    if any(not isinstance(record.get("source_references",[]),list) or any(not isinstance(source,str) for source in record.get("source_references",[])) for record in records): raise ReferenceDataError("crop catalog source_references must be lists of strings")
+    if any(not isinstance(record.get(key,{}),dict) for record in records for key in ("temperature","soil_ph","growth_duration","rainfall","water_requirement","soil_characteristics","legume")):
+        raise ReferenceDataError("crop catalog assessment sections must be objects")
+    for record in records:
+        for section,keys in (("temperature",("min_c","max_c")),("soil_ph",("min","max"))):
+            value=record.get(section,{})
+            if any(not isinstance(value.get(bound,{}),dict) for bound in ("optimal","absolute")):
+                raise ReferenceDataError(f"crop catalog {section} thresholds must be objects")
+            for bound in ("optimal","absolute"):
+                if any(key in value[bound] and value[bound][key] is not None and not _is_finite_number(value[bound][key]) for key in keys):
+                    raise ReferenceDataError(f"crop catalog {section} thresholds must be finite numbers")
+        duration=record.get("growth_duration",{})
+        for key in ("min_days","max_days"):
+            value=duration.get(key)
+            if value is not None and (not isinstance(value,int) or isinstance(value,bool) or value<=0):
+                raise ReferenceDataError("crop growth durations must be positive integer days or null")
+        water=record.get("water_requirement",{})
+        sensitivity=water.get("drought_sensitivity","unknown")
+        if not isinstance(sensitivity,str) or sensitivity not in {"low","low-medium","medium","medium-high","high","unknown"}:
+            raise ReferenceDataError("crop drought_sensitivity has an unsupported value")
+        for key in ("min_mm_season","max_mm_season"):
+            value=water.get(key)
+            if value is not None and (not _is_finite_number(value) or value<0):
+                raise ReferenceDataError("seasonal water requirements must be non-negative finite numbers or null")
+        for section in ("temperature","soil_ph","growth_duration","water_requirement","soil_characteristics","legume"):
+            value=record.get(section,{})
+            if "source_url" in value and value["source_url"] is not None and not isinstance(value["source_url"],str):
+                raise ReferenceDataError(f"crop catalog {section} source_url must be a string or null")
+
+def validate_rotation_rules(rules: dict[str, Any]) -> None:
+    compatibility=rules.get("compatibility",[])
+    if not isinstance(compatibility,list): raise ReferenceDataError("rotation compatibility rules must be a list")
+    for rule in compatibility:
+        if not isinstance(rule,dict) or any(not isinstance(rule.get(key),str) for key in ("from","to","classification")):
+            raise ReferenceDataError("rotation compatibility entries require from, to, and classification")
+        if not isinstance(rule.get("source_urls",[]),list) or any(not isinstance(source,str) for source in rule.get("source_urls",[])):
+            raise ReferenceDataError("rotation rule source_urls must be lists of strings")
+    windows=rules.get("planting_windows",{})
+    if not isinstance(windows,dict): raise ReferenceDataError("planting_windows must be an object")
+    for window in windows.values():
+        if isinstance(window,list):
+            for item in window:
+                if not isinstance(item,dict) or type(item.get("start_month")) is not int or type(item.get("end_month")) is not int:
+                    raise ReferenceDataError("planting window entries require start_month and end_month")
+                if not 1<=item["start_month"]<=12 or not 1<=item["end_month"]<=12:
+                    raise ReferenceDataError("planting window months must be between 1 and 12")
+                if "source_url" in item and item["source_url"] is not None and not isinstance(item["source_url"],str):
+                    raise ReferenceDataError("planting window source_url must be a string or null")
+        elif not isinstance(window,dict):
+            raise ReferenceDataError("planting window values must be objects or lists")
+        else:
+            if "source_url" in window and window["source_url"] is not None and not isinstance(window["source_url"],str):
+                raise ReferenceDataError("planting window source_url must be a string or null")
+            if "note" in window and window["note"] is not None and not isinstance(window["note"],str):
+                raise ReferenceDataError("planting window note must be a string or null")
+
+def validate_climate_summary(summary: dict[str, Any]) -> None:
+    period=summary.get("period")
+    if period is not None and (not isinstance(period,dict) or not isinstance(period.get("start"),str) or not isinstance(period.get("end"),str)):
+        raise ClimateDataError("climate summary period must contain string start and end dates")
+    if period is not None:
+        try:
+            start=datetime.strptime(period["start"],"%Y%m%d").date()
+            end=datetime.strptime(period["end"],"%Y%m%d").date()
+        except ValueError as exc:
+            raise ClimateDataError("climate summary dates must use YYYYMMDD format") from exc
+        if end<start: raise ClimateDataError("climate summary end date precedes start date")
+    if "source_url" in summary and summary["source_url"] is not None and not isinstance(summary["source_url"],str):
+        raise ClimateDataError("climate summary source_url must be a string")
+
+def _provenance(summary: dict[str, Any], climate_period: str | None) -> Provenance:
+    soil_path=ROOT/"data/processed/soil/soilgrids_profile.json"
+    try:
+        soil_profile=json.loads(soil_path.read_text(encoding="utf-8")) if soil_path.exists() else {}
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ReferenceDataError("soil profile data is unavailable or invalid") from exc
+    if not isinstance(soil_profile,dict): raise ReferenceDataError("soil profile data must be a JSON object")
+    soil_status=soil_profile.get("status","unavailable")
+    if soil_status is not None and not isinstance(soil_status,str): raise ReferenceDataError("soil profile status must be a string or null")
+    return Provenance(climate_source="NASA POWER",climate_period=climate_period,climate_source_url=summary.get("source_url") or None,soil_status=soil_status,forecast_available=False)
+
+def _scoring_metadata() -> ScoringMetadata:
+    return ScoringMetadata(weights=WEIGHTS,score_definition=SCORE_DEFINITION,threshold_time_basis=THRESHOLD_TIME_BASIS,annual_rainfall_policy=ANNUAL_RAINFALL_POLICY,window_rainfall_policy=WINDOW_RAINFALL_POLICY)
 
 def _load():
-    catalog=json.loads(CATALOG.read_text(encoding="utf-8")); records={x["crop_id"]:x for x in catalog.get("records",[])}
-    if set(records)!={"rice","maize","mung_bean","soybean"}: raise ValueError("verified crop catalog must contain all four pilot crops")
-    return records,json.loads(RULES.read_text(encoding="utf-8")),json.loads(CLIMATE.read_text(encoding="utf-8"))
+    try:
+        catalog=json.loads(CATALOG.read_text(encoding="utf-8"))
+        rules=json.loads(RULES.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ReferenceDataError("crop catalog or rotation rules are unavailable or invalid") from exc
+    if not isinstance(catalog,dict): raise ReferenceDataError("crop catalog must be an object")
+    validate_crop_catalog(catalog)
+    try:
+        records={x["crop_id"]:x for x in catalog["records"]}
+    except (TypeError, KeyError) as exc:
+        raise ReferenceDataError("crop catalog has an invalid schema") from exc
+    if set(records)!={"rice","maize","mung_bean","soybean"}: raise ReferenceDataError("verified crop catalog must contain all four pilot crops")
+    if not isinstance(rules,dict): raise ReferenceDataError("rotation rules must be an object")
+    validate_rotation_rules(rules)
+    climate_path=CLIMATE if CLIMATE.exists() else ROOT/"shared/fixtures/climate-placeholder.json"
+    try:
+        summary=json.loads(climate_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ClimateDataError("historical climate summary is unavailable or invalid") from exc
+    if not isinstance(summary,dict): raise ClimateDataError("historical climate summary must be a JSON object")
+    validate_climate_summary(summary)
+    return records,rules,summary
 
 def _window(start: date|None, days: int|None) -> tuple[pd.DataFrame|None,str]:
     if start is None: return None,"planting_date is required for time-dependent climate suitability"
     if not days: return None,"verified growth duration is unavailable"
     if not DAILY.exists(): return None,"NASA POWER daily dataset is unavailable"
-    frame=pd.read_csv(DAILY,parse_dates=["date"]); end=start+timedelta(days=days-1); selection=frame[(frame.date.dt.date>=start)&(frame.date.dt.date<=end)]
-    if len(selection)!=days: return None,f"daily climate coverage is incomplete for {start.isoformat()} to {end.isoformat()}"
-    return selection,""
+    try:
+        frame=pd.read_csv(DAILY)
+    except (OSError, UnicodeDecodeError, pd.errors.EmptyDataError, pd.errors.ParserError):
+        return None,"NASA POWER daily dataset could not be read"
+    required={"date","temperature_avg_c","precipitation_mm_day"}
+    if "date" not in frame.columns: return None,"NASA POWER daily dataset is missing the required date column"
+    missing_columns=required-set(frame.columns)
+    if missing_columns: return None,"NASA POWER daily dataset is missing required climate columns: "+", ".join(sorted(missing_columns))
+    frame["date"]=pd.to_datetime(frame["date"],errors="coerce")
+    if frame["date"].isna().any(): return None,"NASA POWER daily dataset contains invalid dates"
+    try:
+        end=start+timedelta(days=days-1)
+        expected_dates=set(pd.date_range(start=start,end=end).date)
+    except (OverflowError, ValueError):
+        return None,"daily climate date range cannot be represented"
+    selection=frame[(frame.date.dt.date>=start)&(frame.date.dt.date<=end)]
+    selected_dates=selection.date.dt.date
+    if selected_dates.duplicated().any() or set(selected_dates)!=expected_dates:
+        return None,f"daily climate coverage is incomplete for {start.isoformat()} to {end.isoformat()}"
+    if selection[["temperature_avg_c","precipitation_mm_day"]].isna().any().any():
+        return None,"NASA POWER daily climate window contains missing climate values"
+    return selection.sort_values("date").reset_index(drop=True),""
 
 def _range(value: float|None, optimal: dict, absolute: dict, low_key: str, high_key: str) -> tuple[str,str]:
     low,high=optimal.get(low_key),optimal.get(high_key); alow,ahigh=absolute.get(low_key),absolute.get(high_key)
@@ -71,10 +215,9 @@ def _strategy_rank(target: str, current: str, records: dict[str, Any], strategy:
     return (*base, priority_bonus, target)
 
 def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
-    records,rules,summary=_load()
-    records,rules,summary=_load(); candidates=scenario.candidate_crop_ids or list(records); current=scenario.farm.current_crop.strip().lower().replace(" ","_"); daily_period=f"{summary['period']['start']}–{summary['period']['end']}"; recommendations=[]; rejected=[]; missing=[]
+    records,rules,summary=_load(); candidates=scenario.candidate_crop_ids or list(records); current=scenario.farm.current_crop.strip().lower().replace(" ","_"); period=summary.get("period") or {}; daily_period=f"{period['start']}\u2013{period['end']}" if period.get("start") and period.get("end") else None; recommendations=[]; rejected=[]; missing=[]
     if current not in records:
-        return RotationCompareResponse(recommendations=[], rejected_alternatives=[RejectedAlternative(crop_id=current, sequence=[current], eligibility="FAIL", reasons=["current crop is absent from verified catalog"], sources=[])], missing_data_warnings=["Current crop is unsupported; no rotation comparison is scientifically valid."], warnings=["NASA POWER is historical climate context, not a future forecast."], provenance={"climate_source":"NASA POWER","climate_period":daily_period,"forecast_available":False}, scoring={"weights":WEIGHTS})
+        return RotationCompareResponse(recommendations=[], rejected_alternatives=[RejectedAlternative(crop_id=current, sequence=[current], eligibility="FAIL", reasons=["current crop is absent from verified catalog"], sources=[])], missing_data_warnings=["Current crop is unsupported; no rotation comparison is scientifically valid."], warnings=["NASA POWER is historical climate context, not a future forecast."], provenance=_provenance(summary,daily_period), scoring=_scoring_metadata())
     candidates = sorted([target for target in candidates if target in records], key=lambda target: _strategy_rank(target, current, records, scenario.strategy, scenario.farm.farmer_priority)) + [target for target in candidates if target not in records]
     for target in candidates:
         if target not in records:
@@ -100,4 +243,4 @@ def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
         item=RotationRecommendation(sequence=[current,target],crop_id=target,crop_name=crop["crop_name"],strategy=scenario.strategy,eligibility=eligibility,score=score,growth_duration_days=duration,hard_constraints_pass=hard,suitability={"temperature":temperature_status,"rainfall_window":rainfall_status,"water":water_status,"soil":soil_status,"salinity":salinity_status},rationale=rationale,warnings=sorted(set(warnings)),sources=sorted(set(x for x in sources if x)))
         (recommendations if eligibility!="FAIL" else rejected).append(item if eligibility!="FAIL" else RejectedAlternative(crop_id=target,sequence=[current,target],eligibility="FAIL",reasons=rationale,sources=item.sources))
     if not recommendations:missing.append("No eligible or assessable alternatives were returned.")
-    return RotationCompareResponse(recommendations=recommendations,rejected_alternatives=rejected,missing_data_warnings=sorted(set(missing)),warnings=["NASA POWER is historical climate context, not a future forecast.","Precipitation is not evapotranspiration or irrigation demand.","UNKNOWN is not PASS; null scores are intentional when suitability cannot be calculated."],provenance={"climate_source":"NASA POWER","climate_period":daily_period,"climate_source_url":summary.get("source_url",""),"soil_status":json.loads((ROOT/"data/processed/soil/soilgrids_profile.json").read_text(encoding="utf-8")).get("status","unavailable"),"forecast_available":False},scoring={"weights":WEIGHTS,"score_definition":"null unless all required time-window, water and soil dimensions are PASS","threshold_time_basis":{"crop_rainfall":"annual mm/year from ECOCROP; context only","crop_water_requirement":"growing-season mm/season from FAO; not irrigation demand"},"annual_rainfall_policy":"annual ECOCROP rainfall thresholds are context only; never compared with seasonal totals","window_rainfall_policy":"daily precipitation is summed over planting_date through verified growth duration; no water-demand claim"})
+    return RotationCompareResponse(recommendations=recommendations,rejected_alternatives=rejected,missing_data_warnings=sorted(set(missing)),warnings=["NASA POWER is historical climate context, not a future forecast.","Precipitation is not evapotranspiration or irrigation demand.","UNKNOWN is not PASS; null scores are intentional when suitability cannot be calculated."],provenance=_provenance(summary,daily_period),scoring=_scoring_metadata())
