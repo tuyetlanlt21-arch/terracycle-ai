@@ -1,0 +1,39 @@
+{
+  "endpoint": "https://power.larc.nasa.gov/api/temporal/daily/point",
+  "request": {
+    "latitude": "10.41",
+    "longitude": "106.96",
+    "start": "20250101",
+    "end": "20251231",
+    "community": "AG",
+    "parameters": "T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,ALLSKY_SFC_SW_DWN",
+    "format": "JSON"
+  },
+  "quality": {
+    "units": {
+      "T2M": "C",
+      "T2M_MAX": "C",
+      "T2M_MIN": "C",
+      "PRECTOTCORR": "mm/day",
+      "RH2M": "%",
+      "ALLSKY_SFC_SW_DWN": "kW-hr/m^2/day"
+    },
+    "missing_values": [
+      -9999.0,
+      -999.0
+    ],
+    "record_count": 365,
+    "duplicate_dates": 0,
+    "missing_by_column": {
+      "date": 0,
+      "latitude": 0,
+      "longitude": 0,
+      "temperature_avg_c": 0,
+      "temperature_max_c": 0,
+      "temperature_min_c": 0,
+      "precipitation_mm_day": 0,
+      "relative_humidity_pct": 0,
+      "solar_radiation_kwh_m2_day": 0
+    }
+  }
+}
