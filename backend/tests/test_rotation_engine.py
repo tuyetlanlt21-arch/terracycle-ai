@@ -37,3 +37,48 @@ def test_missing_planting_date_keeps_time_suitability_unknown():
 def test_window_uses_daily_precipitation_and_growth_duration():
     result=compare_rotation(RotationScenario(farm=farm(planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
     item=result.recommendations[0]; assert "growing-window precipitation is" in " ".join(item.rationale); assert item.growth_duration_days==180; assert item.suitability["rainfall_window"]=="UNKNOWN"
+
+def test_high_salinity_is_hard_failure_and_freshwater_shortage_is_not_pass():
+    result=compare_rotation(RotationScenario(farm=farm(soil_salinity_ec=4.0, irrigation_available=False, freshwater_availability="limited"),strategy="water_saving",candidate_crop_ids=["rice"]))
+    assert result.recommendations == []
+    assert result.rejected_alternatives[0].eligibility == "FAIL"
+    assert any("salinity" in reason.lower() for reason in result.rejected_alternatives[0].reasons)
+
+def test_unsupported_current_crop_is_rejected():
+    result=compare_rotation(RotationScenario(farm=farm(current_crop="cassava"),strategy="current_practice",candidate_crop_ids=["rice"]))
+    assert result.recommendations == []
+    assert result.rejected_alternatives[0].eligibility == "FAIL"
+
+def test_strategy_order_changes_with_supported_evidence_and_priority():
+    candidates=["rice","soybean","mung_bean"]
+    farm_profile=farm(planting_date="2024-11-01", farmer_priority="water")
+    current=compare_rotation(RotationScenario(farm=farm_profile,strategy="current_practice",candidate_crop_ids=candidates))
+    water=compare_rotation(RotationScenario(farm=farm_profile,strategy="water_saving",candidate_crop_ids=candidates))
+    recovery=compare_rotation(RotationScenario(farm=farm_profile,strategy="soil_recovery",candidate_crop_ids=candidates))
+    assert current.recommendations[0].crop_id == "rice"
+    assert water.recommendations[0].crop_id == "soybean"
+    assert recovery.recommendations[0].crop_id in {"mung_bean", "soybean"}
+    assert all("water-saving" in " ".join(item.rationale) for item in water.recommendations)
+
+def test_fully_evidenced_constraints_still_expose_unverified_rainfall_basis():
+    result=compare_rotation(RotationScenario(farm=farm(planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
+    item=result.recommendations[0]
+    assert item.suitability["temperature"] == "PASS"
+    assert item.suitability["soil"] == "PASS"
+    assert item.suitability["salinity"] == "PASS"
+    assert item.suitability["rainfall_window"] == "UNKNOWN"
+    assert item.score is None
+
+def test_deterministic_end_to_end_scenarios():
+    scenarios=[
+        (farm(planting_date="2024-11-01"), "current_practice", ["rice"]),
+        (farm(planting_date="2024-11-01",farmer_priority="water"), "water_saving", ["rice","soybean"]),
+        (farm(planting_date="2024-11-01",farmer_priority="soil"), "soil_recovery", ["rice","mung_bean","soybean"]),
+        (farm(planting_date="2025-06-01",irrigation_available=False,freshwater_availability="limited"), "water_saving", ["rice","soybean"]),
+        (farm(planting_date="2024-11-01",soil_ph=None,soil_salinity_ec=None), "soil_recovery", ["rice","soybean"]),
+    ]
+    for profile,strategy,candidates in scenarios:
+        result=compare_rotation(RotationScenario(farm=profile,strategy=strategy,candidate_crop_ids=candidates))
+        assert result.provenance["climate_source"] == "NASA POWER"
+        assert result.provenance["forecast_available"] is False
+        assert result.recommendations or result.rejected_alternatives
