@@ -85,6 +85,26 @@ def test_deterministic_end_to_end_scenarios():
         assert result.provenance.forecast_available is False
         assert result.recommendations or result.rejected_alternatives
 
+def test_region_guard_keeps_climate_evidence_separate_from_unverified_rules():
+    result=compare_rotation(RotationScenario(farm=farm(latitude=10.72, longitude=106.70, planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
+    item=result.recommendations[0]
+    assert item.suitability.temperature in {"PASS", "UNKNOWN"}
+    assert item.eligibility == "UNKNOWN"
+    assert item.suitability.rainfall_window == "UNKNOWN"
+    assert "outside their verified geographic scope" in " ".join(item.warnings)
+    assert result.provenance.supported_scope == "verified_point_only"
+    assert result.provenance.applicability_reason
+
+def test_long_xuyen_point_is_the_only_verified_rule_location():
+    result=compare_rotation(RotationScenario(farm=farm(latitude=10.383333, longitude=105.45, planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
+    assert result.provenance.applicability_reason is None
+    assert result.provenance.evaluated_location == {"latitude":10.383333,"longitude":105.45}
+
+def test_missing_coordinates_preserves_legacy_pilot_contract():
+    result=compare_rotation(RotationScenario(farm=farm(planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
+    assert result.provenance.evaluated_location is None
+    assert result.recommendations[0].suitability.rainfall_window == "UNKNOWN"
+
 def test_window_rejects_duplicate_dates_that_mask_missing_coverage(tmp_path, monkeypatch):
     dataset=tmp_path/"daily.csv"
     dataset.write_text("date,temperature_avg_c,precipitation_mm_day\n2024-01-01,20,1\n2024-01-01,21,2\n",encoding="utf-8")

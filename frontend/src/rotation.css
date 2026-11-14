@@ -66,3 +66,5 @@ body{background:radial-gradient(ellipse at 85% 25%,#1b1741 0,transparent 42%),ra
 .globe-location-controls small{color:#bccbd9;font-size:.7rem}
 .globe-location-controls strong{font-size:clamp(1.2rem,3vw,2.3rem)}
 .farm-profile:has(.farm-globe-expanded),.mission-grid:has(.farm-globe-expanded){isolation:auto}
+.globe-coordinates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;text-align:left}.globe-coordinates label{font-size:10px;color:#cfe0d8}.globe-coordinates input{padding:7px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff}.farm-globe canvas{cursor:crosshair}
+.globe-provenance{display:grid;gap:5px;margin-top:12px;max-width:300px;color:#d9eee9;font-size:.7rem;line-height:1.35;text-align:left}.globe-provenance span{color:#a9c7c0}

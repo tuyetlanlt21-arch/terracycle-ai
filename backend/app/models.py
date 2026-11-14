@@ -1,6 +1,6 @@
 from typing import Literal
 from datetime import date
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Priority = Literal["yield", "water", "soil", "income", "risk"]
 Strategy = Literal["current_practice", "water_saving", "soil_recovery"]
@@ -19,6 +19,14 @@ class FarmProfile(BaseModel):
     farmer_priority: Priority = "yield"
     planning_month: int | None = Field(default=None, ge=1, le=12)
     planting_date: date | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+    @model_validator(mode="after")
+    def coordinates_are_a_pair(self):
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("latitude and longitude must be provided together")
+        return self
 
     @field_validator("current_crop")
     @classmethod
@@ -52,6 +60,9 @@ class SuitabilityAssessment(BaseModel):
     soil: Status
     salinity: Status
 
+    def __getitem__(self, key: str): return getattr(self, key)
+    def __iter__(self): return iter(type(self).model_fields)
+
 class RotationRecommendation(BaseModel):
     sequence: list[str]
     crop_id: str
@@ -79,6 +90,16 @@ class Provenance(BaseModel):
     climate_source_url: str | None
     soil_status: str | None
     forecast_available: bool
+    evaluated_location: dict[str, float] | None = None
+    availability: dict[str, str] = Field(default_factory=dict)
+    observation_time: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+    rule_set: str | None = None
+    supported_scope: str | None = None
+    applicability_reason: str | None = None
+
+    def __getitem__(self, key: str): return getattr(self, key)
+    def __iter__(self): return iter(type(self).model_fields)
 
 class ScoringMetadata(BaseModel):
     weights: dict[str, float]
@@ -86,6 +107,9 @@ class ScoringMetadata(BaseModel):
     threshold_time_basis: dict[str, str]
     annual_rainfall_policy: str
     window_rainfall_policy: str
+
+    def __getitem__(self, key: str): return getattr(self, key)
+    def __iter__(self): return iter(type(self).model_fields)
 
 class RotationCompareResponse(BaseModel):
     recommendations: list[RotationRecommendation]

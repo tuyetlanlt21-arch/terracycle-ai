@@ -1,0 +1,49 @@
+{
+  "location": "Can Gio, Vietnam",
+  "source_policy": "Synthetic scenario inputs for validation only; not field observations.",
+  "strategies": ["current_practice", "water_saving", "soil_recovery"],
+  "scenarios": [
+    {
+      "id": "SC-01",
+      "title": "High soil salinity",
+      "farm": {"current_crop":"rice","farm_area_ha":1,"soil_ph":6.0,"soil_salinity_ec":4.0,"irrigation_water_ec":0.5,"irrigation_available":true,"freshwater_availability":"adequate","farmer_priority":"risk","planning_month":11,"planting_date":"2024-11-01"},
+      "candidate_crop_ids": ["rice","soybean"],
+      "expected": {"target":"rice","eligibility":"FAIL","suitability":{"salinity":"FAIL"},"score":null,"reason_contains":"salinity"}
+    },
+    {
+      "id": "SC-02",
+      "title": "Limited irrigation water",
+      "farm": {"current_crop":"rice","farm_area_ha":1,"soil_ph":6.0,"soil_salinity_ec":1.0,"irrigation_water_ec":null,"irrigation_available":false,"freshwater_availability":"limited","farmer_priority":"water","planning_month":11,"planting_date":"2024-11-01"},
+      "candidate_crop_ids": ["rice","soybean"],
+      "expected": {"target":"rice","eligibility":"FAIL","suitability":{"water":"FAIL"},"score":null,"reason_contains":"water"}
+    },
+    {
+      "id": "SC-03",
+      "title": "Soil pH outside optimal but inside absolute range",
+      "farm": {"current_crop":"rice","farm_area_ha":1,"soil_ph":7.5,"soil_salinity_ec":1.0,"irrigation_water_ec":0.5,"irrigation_available":true,"freshwater_availability":"adequate","farmer_priority":"soil","planning_month":11,"planting_date":"2024-11-01"},
+      "candidate_crop_ids": ["rice","soybean"],
+      "expected": {"target":"rice","eligibility":"UNKNOWN","suitability":{"soil":"UNKNOWN"},"score":null,"reason_contains":"outside optimal"}
+    },
+    {
+      "id": "SC-04",
+      "title": "Favorable climate and soil inputs",
+      "farm": {"current_crop":"rice","farm_area_ha":1,"soil_ph":6.0,"soil_salinity_ec":1.0,"irrigation_water_ec":0.5,"irrigation_available":true,"freshwater_availability":"adequate","farmer_priority":"yield","planning_month":11,"planting_date":"2024-11-01"},
+      "candidate_crop_ids": ["rice","soybean"],
+      "expected": {"target":"rice","suitability":{"temperature":"PASS","soil":"PASS","salinity":"PASS"},"score":null,"reason_contains":"annual"}
+    },
+    {
+      "id": "SC-05",
+      "title": "Critical data missing",
+      "farm": {"current_crop":"rice","farm_area_ha":1,"soil_ph":null,"soil_salinity_ec":null,"irrigation_water_ec":null,"irrigation_available":null,"freshwater_availability":"unknown","farmer_priority":"risk","planning_month":null,"planting_date":null},
+      "candidate_crop_ids": ["rice","mung_bean"],
+      "expected": {"target":"rice","eligibility":"UNKNOWN","score":null,"reason_contains":"missing"}
+    },
+    {
+      "id": "SC-06",
+      "title": "Threshold boundary values",
+      "farm": {"current_crop":"rice","farm_area_ha":1,"soil_ph":5.5,"soil_salinity_ec":4.0,"irrigation_water_ec":0.5,"irrigation_available":true,"freshwater_availability":"adequate","farmer_priority":"risk","planning_month":11,"planting_date":"2024-11-01"},
+      "candidate_crop_ids": ["rice"],
+      "expected": {"target":"rice","eligibility":"FAIL","suitability":{"soil":"PASS","salinity":"FAIL"},"score":null,"reason_contains":"salinity"}
+    }
+  ]
+}

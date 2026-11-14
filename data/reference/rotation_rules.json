@@ -2,6 +2,7 @@
   "schema_version": "1.0.0",
   "status": "evidence_based_mvp_with_explicit_unknowns",
   "pilot": {"name":"Long Xuyen, An Giang","latitude":10.383333,"longitude":105.45,"scope_note":"Rules are pilot-context rules, not province-wide prescriptions."},
+  "applicability": {"type":"verified_point_only","supported_locations":[{"name":"Long Xuyen, An Giang","latitude":10.383333,"longitude":105.45}],"unsupported_reason":"Seasonal calendars and crop transitions are verified only for the Long Xuyen pilot point; no regional generalization is authorized."},
   "planting_windows": {
     "rice": [{"name":"winter_spring","start_month":11,"end_month":12,"source_url":"https://thuvienphapluat.vn/van-ban/tai-nguyen-moi-truong/quyet-dinh-76-2007-qd-ubnd-quy-dinh-lich-thoi-vu-xuong-giong-lua-tinh-an-giang-58942.aspx"},{"name":"summer_autumn","start_month":4,"end_month":5,"source_url":"https://thuvienphapluat.vn/van-ban/tai-nguyen-moi-truong/quyet-dinh-76-2007-qd-ubnd-quy-dinh-lich-thoi-vu-xuong-giong-lua-tinh-an-giang-58942.aspx"},{"name":"autumn_winter","start_month":8,"end_month":8,"source_url":"https://thuvienphapluat.vn/van-ban/tai-nguyen-moi-truong/quyet-dinh-76-2007-qd-ubnd-quy-dinh-lich-thoi-vu-xuong-giong-lua-tinh-an-giang-58942.aspx"}],
     "maize": {"status":"not_specified_for_this_pilot","note":"No verified Long Xuyen-specific maize planting calendar was located; do not infer dates from rice windows.","source_url":"https://ageconsearch.umn.edu/record/164490/files/Rice-maize.pdf"},

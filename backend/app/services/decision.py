@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 from app.models import Provenance, RejectedAlternative, RotationCompareResponse, RotationRecommendation, RotationScenario, ScoringMetadata
+from app.services.location_data import load_location
 
 ROOT=Path(__file__).resolve().parents[3]; CATALOG=ROOT/"data/reference/crop_catalog.json"; RULES=ROOT/"data/reference/rotation_rules.json"; CLIMATE=ROOT/"data/processed/power/climate_summary.json"; DAILY=ROOT/"data/processed/power/nasa_power_daily.csv"; WEIGHTS={"temperature":0.4,"water":0.3,"soil":0.3}
 SCORE_DEFINITION="null unless all required time-window, water and soil dimensions are PASS"
@@ -62,6 +63,14 @@ def validate_crop_catalog(catalog: dict[str, Any]) -> None:
                 raise ReferenceDataError(f"crop catalog {section} source_url must be a string or null")
 
 def validate_rotation_rules(rules: dict[str, Any]) -> None:
+    applicability=rules.get("applicability")
+    if not isinstance(applicability,dict) or applicability.get("type") != "verified_point_only" or not isinstance(applicability.get("supported_locations"),list):
+        raise ReferenceDataError("rotation rules require verified applicability metadata")
+    for point in applicability["supported_locations"]:
+        if not isinstance(point,dict) or not isinstance(point.get("name"),str) or not _is_finite_number(point.get("latitude")) or not _is_finite_number(point.get("longitude")):
+            raise ReferenceDataError("rotation rule supported locations are invalid")
+        if not -90 <= point["latitude"] <= 90 or not -180 <= point["longitude"] <= 180: raise ReferenceDataError("rotation rule location is outside coordinate bounds")
+    if not isinstance(applicability.get("unsupported_reason"),str) or not applicability["unsupported_reason"].strip(): raise ReferenceDataError("rotation rule applicability requires unsupported_reason")
     compatibility=rules.get("compatibility",[])
     if not isinstance(compatibility,list): raise ReferenceDataError("rotation compatibility rules must be a list")
     for rule in compatibility:
@@ -102,16 +111,17 @@ def validate_climate_summary(summary: dict[str, Any]) -> None:
     if "source_url" in summary and summary["source_url"] is not None and not isinstance(summary["source_url"],str):
         raise ClimateDataError("climate summary source_url must be a string")
 
-def _provenance(summary: dict[str, Any], climate_period: str | None) -> Provenance:
+def _provenance(summary: dict[str, Any], climate_period: str | None, location=None, availability=None, warnings=None, rules=None, applicability_reason=None) -> Provenance:
     soil_path=ROOT/"data/processed/soil/soilgrids_profile.json"
     try:
         soil_profile=json.loads(soil_path.read_text(encoding="utf-8")) if soil_path.exists() else {}
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise ReferenceDataError("soil profile data is unavailable or invalid") from exc
     if not isinstance(soil_profile,dict): raise ReferenceDataError("soil profile data must be a JSON object")
-    soil_status=soil_profile.get("status","unavailable")
+    soil_status=("unavailable" if availability and availability.get("soil") != "available" else soil_profile.get("status","unavailable"))
     if soil_status is not None and not isinstance(soil_status,str): raise ReferenceDataError("soil profile status must be a string or null")
-    return Provenance(climate_source="NASA POWER",climate_period=climate_period,climate_source_url=summary.get("source_url") or None,soil_status=soil_status,forecast_available=False)
+    applicability=(rules or {}).get("applicability",{})
+    return Provenance(climate_source="NASA POWER",climate_period=climate_period,climate_source_url=summary.get("source_url") or None,soil_status=soil_status,forecast_available=False,evaluated_location=location,availability=availability or {},observation_time=summary.get("retrieval_date"),warnings=warnings or [],rule_set=f"rotation_rules.json@{(rules or {}).get('schema_version','unknown')}",supported_scope=applicability.get("type"),applicability_reason=applicability_reason)
 
 def _scoring_metadata() -> ScoringMetadata:
     return ScoringMetadata(weights=WEIGHTS,score_definition=SCORE_DEFINITION,threshold_time_basis=THRESHOLD_TIME_BASIS,annual_rainfall_policy=ANNUAL_RAINFALL_POLICY,window_rainfall_policy=WINDOW_RAINFALL_POLICY)
@@ -140,12 +150,13 @@ def _load():
     validate_climate_summary(summary)
     return records,rules,summary
 
-def _window(start: date|None, days: int|None) -> tuple[pd.DataFrame|None,str]:
+def _window(start: date|None, days: int|None, daily_path: Path | None = None) -> tuple[pd.DataFrame|None,str]:
+    daily_path = daily_path or DAILY
     if start is None: return None,"planting_date is required for time-dependent climate suitability"
     if not days: return None,"verified growth duration is unavailable"
-    if not DAILY.exists(): return None,"NASA POWER daily dataset is unavailable"
+    if not daily_path.exists(): return None,"NASA POWER daily dataset is unavailable"
     try:
-        frame=pd.read_csv(DAILY)
+        frame=pd.read_csv(daily_path)
     except (OSError, UnicodeDecodeError, pd.errors.EmptyDataError, pd.errors.ParserError):
         return None,"NASA POWER daily dataset could not be read"
     required={"date","temperature_avg_c","precipitation_mm_day"}
@@ -173,13 +184,15 @@ def _range(value: float|None, optimal: dict, absolute: dict, low_key: str, high_
     if (alow is not None and value<alow) or (ahigh is not None and value>ahigh): return "FAIL",f"{value:.2f} is outside the absolute range"
     return ("PASS",f"{value:.2f} is within optimal range {low:g}-{high:g}") if low<=value<=high else ("UNKNOWN",f"{value:.2f} is outside optimal but inside absolute range")
 
-def _transition(current,target,rules):
+def _transition(current,target,rules,applicable=True):
+    if not applicable: return "UNKNOWN","rotation transition rules are outside their verified geographic scope",[]
     if current==target:return "PASS","current practice continuation",[]
     matches=[x for x in rules.get("compatibility",[]) if (x["from"]==current or x["from"]=="legume" and current in {"mung_bean","soybean"}) and x["to"]==target]
     if not matches:return "FAIL",f"no supported transition rule from {current} to {target}",[]
     rule=matches[0]; return ("PASS" if rule["classification"]=="supported_candidate" else "UNKNOWN"),rule["classification"],rule.get("source_urls",[])
 
-def _calendar(target,planting_date,rules):
+def _calendar(target,planting_date,rules,applicable=True):
+    if not applicable: return "UNKNOWN","seasonal calendar is outside the verified geographic scope",[]
     window=rules.get("planting_windows",{}).get(target)
     if planting_date is None:return "UNKNOWN","planting_date is missing",[]
     if not isinstance(window,list):return "UNKNOWN",(window or {}).get("note","verified planting window unavailable"),[(window or {}).get("source_url")] if (window or {}).get("source_url") else []
@@ -215,14 +228,28 @@ def _strategy_rank(target: str, current: str, records: dict[str, Any], strategy:
     return (*base, priority_bonus, target)
 
 def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
-    records,rules,summary=_load(); candidates=scenario.candidate_crop_ids or list(records); current=scenario.farm.current_crop.strip().lower().replace(" ","_"); period=summary.get("period") or {}; daily_period=f"{period['start']}\u2013{period['end']}" if period.get("start") and period.get("end") else None; recommendations=[]; rejected=[]; missing=[]
+    records,rules,summary=_load(); location=None; availability={}; location_warnings=[]; daily_path=DAILY
+    if scenario.farm.latitude is not None:
+        location={"latitude":scenario.farm.latitude,"longitude":scenario.farm.longitude}
+        located=load_location(ROOT, scenario.farm.latitude, scenario.farm.longitude)
+        availability,location_warnings,daily_path=located.availability,located.warnings,located.daily_path or Path("__missing_location_dataset__")
+        if located.climate is None: summary={}
+    candidates=scenario.candidate_crop_ids or list(records); current=scenario.farm.current_crop.strip().lower().replace(" ","_"); period=summary.get("period") or {}; daily_period=f"{period['start']}\u2013{period['end']}" if period.get("start") and period.get("end") else None; recommendations=[]; rejected=[]; missing=list(location_warnings)
+    applicability_reason=None
+    if scenario.farm.latitude is None:
+        rules_applicable=True
+    else:
+        points=rules.get("applicability",{}).get("supported_locations",[])
+        rules_applicable=any(abs(scenario.farm.latitude-p["latitude"]) < 1e-6 and abs(scenario.farm.longitude-p["longitude"]) < 1e-6 for p in points)
+        applicability_reason=None if rules_applicable else rules.get("applicability",{}).get("unsupported_reason")
+        if applicability_reason: missing.append(applicability_reason)
     if current not in records:
-        return RotationCompareResponse(recommendations=[], rejected_alternatives=[RejectedAlternative(crop_id=current, sequence=[current], eligibility="FAIL", reasons=["current crop is absent from verified catalog"], sources=[])], missing_data_warnings=["Current crop is unsupported; no rotation comparison is scientifically valid."], warnings=["NASA POWER is historical climate context, not a future forecast."], provenance=_provenance(summary,daily_period), scoring=_scoring_metadata())
+        return RotationCompareResponse(recommendations=[], rejected_alternatives=[RejectedAlternative(crop_id=current, sequence=[current], eligibility="FAIL", reasons=["current crop is absent from verified catalog"], sources=[])], missing_data_warnings=["Current crop is unsupported; no rotation comparison is scientifically valid."], warnings=["NASA POWER is historical climate context, not a future forecast."], provenance=_provenance(summary,daily_period,location,availability,location_warnings,rules,applicability_reason), scoring=_scoring_metadata())
     candidates = sorted([target for target in candidates if target in records], key=lambda target: _strategy_rank(target, current, records, scenario.strategy, scenario.farm.farmer_priority)) + [target for target in candidates if target not in records]
     for target in candidates:
         if target not in records:
             rejected.append(RejectedAlternative(crop_id=target,sequence=[current,target],eligibility="FAIL",reasons=["crop is absent from verified catalog"],sources=[]));continue
-        crop=records[target]; sources=list(crop.get("source_references",[])); transition,transition_reason,transition_sources=_transition(current,target,rules); sources+=transition_sources; calendar,calendar_reason,calendar_sources=_calendar(target,scenario.farm.planting_date,rules); sources+=calendar_sources; frame,window_reason=_window(scenario.farm.planting_date,crop.get("growth_duration",{}).get("max_days"))
+        crop=records[target]; sources=list(crop.get("source_references",[])); transition,transition_reason,transition_sources=_transition(current,target,rules,rules_applicable); sources+=transition_sources; calendar,calendar_reason,calendar_sources=_calendar(target,scenario.farm.planting_date,rules,rules_applicable); sources+=calendar_sources; frame,window_reason=_window(scenario.farm.planting_date,crop.get("growth_duration",{}).get("max_days"),daily_path)
         temp=crop.get("temperature",{}); soil=crop.get("soil_ph",{}); warnings=[x for status,x in ((transition,transition_reason),(calendar,calendar_reason)) if status=="UNKNOWN"]; reasons=[transition_reason,calendar_reason]
         if frame is None: temperature_status="UNKNOWN"; temperature_reason=window_reason; rainfall_status="UNKNOWN"; rainfall_reason="growing-window precipitation unavailable or cannot be compared to annual reference"; missing += [f"{target}: {window_reason}"]
         else:
@@ -232,7 +259,12 @@ def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
         if scenario.farm.soil_ph is None: soil_status,soil_reason="UNKNOWN","soil pH is missing; SoilGrids has no values"
         else: soil_status,soil_reason=_range(scenario.farm.soil_ph,soil.get("optimal",{}),soil.get("absolute",{}),"min","max")
         water_status,water_reason=_water_status(crop,scenario.farm); salinity_status,salinity_reason=_salinity_status(crop,scenario.farm.soil_salinity_ec)
-        statuses={transition,calendar,temperature_status,soil_status,salinity_status,water_status}; hard="FAIL" if "FAIL" in statuses else "UNKNOWN" if "UNKNOWN" in statuses else "PASS"; eligibility=hard; score=None
+        # Rainfall-window evidence is an explicit suitability dimension. It is
+        # currently UNKNOWN by policy because the catalog rainfall bounds are
+        # annual context, not a verified seasonal threshold. It must therefore
+        # participate in eligibility; otherwise an UNKNOWN climate dimension
+        # could incorrectly produce PASS.
+        statuses={transition,calendar,temperature_status,rainfall_status,soil_status,salinity_status,water_status}; hard="FAIL" if "FAIL" in statuses else "UNKNOWN" if "UNKNOWN" in statuses else "PASS"; eligibility=hard; score=None
         for status,reason in [(temperature_status,temperature_reason),(rainfall_status,rainfall_reason),(soil_status,soil_reason),(salinity_status,salinity_reason),(water_status,water_reason)]:
             if status=="UNKNOWN": warnings.append(reason); missing.append(f"{target}: {reason}")
         if scenario.strategy=="current_practice" and target==current:reasons.append("baseline continuation of current practice")
@@ -243,4 +275,4 @@ def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
         item=RotationRecommendation(sequence=[current,target],crop_id=target,crop_name=crop["crop_name"],strategy=scenario.strategy,eligibility=eligibility,score=score,growth_duration_days=duration,hard_constraints_pass=hard,suitability={"temperature":temperature_status,"rainfall_window":rainfall_status,"water":water_status,"soil":soil_status,"salinity":salinity_status},rationale=rationale,warnings=sorted(set(warnings)),sources=sorted(set(x for x in sources if x)))
         (recommendations if eligibility!="FAIL" else rejected).append(item if eligibility!="FAIL" else RejectedAlternative(crop_id=target,sequence=[current,target],eligibility="FAIL",reasons=rationale,sources=item.sources))
     if not recommendations:missing.append("No eligible or assessable alternatives were returned.")
-    return RotationCompareResponse(recommendations=recommendations,rejected_alternatives=rejected,missing_data_warnings=sorted(set(missing)),warnings=["NASA POWER is historical climate context, not a future forecast.","Precipitation is not evapotranspiration or irrigation demand.","UNKNOWN is not PASS; null scores are intentional when suitability cannot be calculated."],provenance=_provenance(summary,daily_period),scoring=_scoring_metadata())
+    return RotationCompareResponse(recommendations=recommendations,rejected_alternatives=rejected,missing_data_warnings=sorted(set(missing)),warnings=["NASA POWER is historical climate context, not a future forecast.","Precipitation is not evapotranspiration or irrigation demand.","UNKNOWN is not PASS; null scores are intentional when suitability cannot be calculated.",*location_warnings],provenance=_provenance(summary,daily_period,location,availability,location_warnings,rules,applicability_reason),scoring=_scoring_metadata())
