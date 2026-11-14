@@ -16,6 +16,17 @@ python -m datascience.soilgrids --latitude 10.41 --longitude 106.96
 
 The ECOCROP adapter normalizes a traceable CSV export when supplied; absent exports produce an explicitly unavailable catalog.
 
+`rotation_engine.py` is a DS-only reusable layer for crop-window assessment and multi-season sequence validation. It does not alter the Backend response contract. `extract_growth_window()` requires complete daily coverage, supports December-January crossings, and returns `UNKNOWN` rather than imputing missing days. `validate_sequence()` rejects overlapping periods and unsupported chronology; `assess_sequence()` checks sourced transitions and preserves unknown climate evidence.
+
+The catalog contains rice, maize, mung bean and soybean. Annual ECOCROP rainfall is not used as a seasonal test. Mung-bean seasonal water demand and non-rice Long Xuyen calendars remain explicitly unknown. Soil salinity EC and irrigation-water EC are separate farmer/local measurements. No ET0, crop coefficients, irrigation volume, nitrogen gain, yield gain or soil restoration is calculated.
+
+Run DS-only validation from repository root:
+
+```powershell
+$env:PYTHONPATH='.'; python -m pytest -q datascience/tests -p no:cacheprovider
+python -m compileall -q datascience
+```
+
 ## Reproducibility and scientific guardrails
 
 `power.py` requests exactly T2M, T2M_MAX, PRECTOTCORR, RH2M, ALLSKY_SFC_SW_DWN and WS2M. Requests are validated for coordinates and date order, NASA fill values (`-999`/`-9999`) become null, and failed requests are retried. When `run()` is used, the raw JSON is preserved as `raw_response.json` and a parameter-hash cache is written under `.cache`; cached responses are never treated as forecasts.
