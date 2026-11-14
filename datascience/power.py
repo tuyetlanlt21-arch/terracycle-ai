@@ -57,6 +57,27 @@ def normalize(payload: dict[str, Any], requested_latitude: float | None = None, 
     expected = pd.date_range(frame.date.min(), frame.date.max(), freq="D") if not frame.empty else pd.DatetimeIndex([]); present = set(frame.date); missing = [d.strftime("%Y-%m-%d") for d in expected if d.strftime("%Y-%m-%d") not in present]
     return frame, {"record_count": len(frame), "duplicate_dates": int(frame.date.duplicated().sum()), "missing_dates": missing, "missing_count": int(frame.isna().sum().sum()), "missing_by_column": frame.isna().sum().to_dict(), "units": UNITS}
 
+def validate_daily_frame(frame: pd.DataFrame, start: str | None = None, end: str | None = None) -> dict[str, Any]:
+    """Validate temporal coverage without imputing observations."""
+    if frame.empty: return {"valid": False, "reason": "daily frame is empty", "missing_dates": []}
+    dates = pd.to_datetime(frame["date"], errors="coerce")
+    if dates.isna().any(): return {"valid": False, "reason": "invalid date value", "missing_dates": []}
+    duplicate_dates = int(dates.duplicated().sum())
+    requested_start = pd.to_datetime(start, format="%Y%m%d") if start else dates.min()
+    requested_end = pd.to_datetime(end, format="%Y%m%d") if end else dates.max()
+    expected = pd.date_range(requested_start, requested_end, freq="D")
+    present = set(dates.dt.strftime("%Y-%m-%d")); missing = [day.strftime("%Y-%m-%d") for day in expected if day.strftime("%Y-%m-%d") not in present]
+    return {"valid": duplicate_dates == 0 and not missing and dates.min() <= requested_start and dates.max() >= requested_end, "start": dates.min().strftime("%Y-%m-%d"), "end": dates.max().strftime("%Y-%m-%d"), "expected_record_count": len(expected), "record_count": len(frame), "duplicate_dates": duplicate_dates, "missing_dates": missing, "leap_days_present": any(day.month == 2 and day.day == 29 for day in dates)}
+
+def extract_growth_window(frame: pd.DataFrame, planting_date: str | pd.Timestamp, duration_days: int) -> tuple[pd.DataFrame | None, dict[str, Any]]:
+    """Extract a real daily crop window, including December-January crossings."""
+    if duration_days <= 0: return None, {"status": "UNKNOWN", "reason": "duration must be positive"}
+    start = pd.Timestamp(planting_date).normalize(); end = start + pd.Timedelta(days=duration_days - 1)
+    dates = pd.to_datetime(frame["date"], errors="coerce"); selected = frame.loc[(dates >= start) & (dates <= end)].copy()
+    expected = pd.date_range(start, end, freq="D"); present = set(pd.to_datetime(selected["date"]).dt.strftime("%Y-%m-%d")) if not selected.empty else set(); missing = [day.strftime("%Y-%m-%d") for day in expected if day.strftime("%Y-%m-%d") not in present]
+    if missing: return None, {"status": "UNKNOWN", "reason": "daily climate coverage is incomplete", "start": start.date().isoformat(), "end": end.date().isoformat(), "missing_dates": missing}
+    return selected.sort_values("date").reset_index(drop=True), {"status": "PASS", "start": start.date().isoformat(), "end": end.date().isoformat(), "duration_days": duration_days, "crosses_calendar_year": start.year != end.year}
+
 def monthly_summary(frame: pd.DataFrame) -> pd.DataFrame:
     columns = ["month", "precipitation_sum_mm", "temperature_mean_c", "temperature_max_mean_c", "relative_humidity_mean_pct", "solar_radiation_mean_kwh_m2_day", "wind_speed_mean_m_s", "missing_count"]
     if frame.empty: return pd.DataFrame(columns=columns)
@@ -77,7 +98,7 @@ def seasonal_features(monthly: pd.DataFrame) -> dict[str, Any]:
     return result
 
 def run(latitude: float, longitude: float, start: str, end: str, output_dir: Path) -> dict[str, Any]:
-    params = build_params(latitude, longitude, start, end); payload = fetch_power(params, cache_dir=output_dir / ".cache"); frame, quality = normalize(payload, latitude, longitude); monthly = monthly_summary(frame); output_dir.mkdir(parents=True, exist_ok=True); frame.to_csv(output_dir / "nasa_power_daily.csv", index=False); monthly.to_csv(output_dir / "climate_monthly.csv", index=False); (output_dir / "raw_response.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    params = build_params(latitude, longitude, start, end); payload = fetch_power(params, cache_dir=output_dir / ".cache"); frame, quality = normalize(payload, latitude, longitude); coverage = validate_daily_frame(frame, start, end); quality["coverage"] = coverage; monthly = monthly_summary(frame); output_dir.mkdir(parents=True, exist_ok=True); frame.to_csv(output_dir / "nasa_power_daily.csv", index=False); monthly.to_csv(output_dir / "climate_monthly.csv", index=False); (output_dir / "raw_response.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
     summary = {"location":{"latitude":latitude,"longitude":longitude},"period":{"start":start,"end":end},"source":"NASA POWER","source_url":requests.Request("GET", ENDPOINT, params=params).prepare().url,"retrieval_date":datetime.now(timezone.utc).date().isoformat(),"units":UNITS,"daily_records":len(frame),"missing_count":quality["missing_count"],"quality":quality,"seasonal_features":seasonal_features(monthly),"monthly_metrics":monthly.to_dict(orient="records"),"forecast_available":False}
     (output_dir / "climate_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8"); return summary
 
