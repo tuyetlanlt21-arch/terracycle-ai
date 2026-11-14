@@ -196,3 +196,38 @@ def test_missing_daily_climate_file_leaves_suitability_unknown(tmp_path, monkeyp
     assert item["eligibility"]=="UNKNOWN"
     assert item["suitability"]["temperature"]=="UNKNOWN"
     assert any("daily dataset is unavailable" in warning for warning in response.json()["missing_data_warnings"])
+
+def test_crop_catalog_with_missing_required_record_field_is_data_error(tmp_path, monkeypatch):
+    records=[{"crop_id":crop_id,"crop_name":crop_id} for crop_id in ("rice","maize","mung_bean","soybean")]
+    del records[0]["crop_name"]
+    catalog=tmp_path/"crop_catalog.json"
+    catalog.write_text(json.dumps({"records":records}),encoding="utf-8")
+    monkeypatch.setattr(decision,"CATALOG",catalog)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_rotation_rules_with_invalid_collections_are_data_error(tmp_path, monkeypatch):
+    rules=tmp_path/"rotation_rules.json"
+    rules.write_text(json.dumps({"compatibility":"not-a-list","planting_windows":{}}),encoding="utf-8")
+    monkeypatch.setattr(decision,"RULES",rules)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}
+
+def test_climate_summary_with_invalid_period_shape_is_data_error(tmp_path, monkeypatch):
+    summary=tmp_path/"climate_summary.json"
+    summary.write_text(json.dumps({"period":"not-an-object"}),encoding="utf-8")
+    monkeypatch.setattr(decision,"CLIMATE",summary)
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
+    assert response.status_code==503
+    assert response.json()=={"detail":"Climate summary data is unavailable."}
+
+def test_crop_endpoint_rejects_records_with_invalid_shape(tmp_path, monkeypatch):
+    catalog=tmp_path/"data/reference/crop_catalog.json"
+    catalog.parent.mkdir(parents=True)
+    catalog.write_text(json.dumps({"records":[{"crop_id":"rice"}]}),encoding="utf-8")
+    monkeypatch.setattr(main,"ROOT",tmp_path)
+    response=client.get("/api/crops")
+    assert response.status_code==503
+    assert response.json()=={"detail":"Reference data is unavailable."}

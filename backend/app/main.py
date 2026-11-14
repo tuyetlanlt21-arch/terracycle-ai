@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from app.models import RotationCompareResponse, RotationScenario
-from app.services.decision import ClimateDataError, ReferenceDataError, compare_rotation
+from app.services.decision import ClimateDataError, ReferenceDataError, compare_rotation, validate_climate_summary, validate_crop_catalog
 app=FastAPI(title="TerraCycle AI API",version="1.0.0",description="Climate-adaptive crop rotation decision support; not a forecast")
 app.add_middleware(CORSMiddleware,allow_origins=[v.strip() for v in os.getenv("CORS_ORIGINS","http://localhost:5173").split(",") if v.strip()],allow_methods=["GET","POST"],allow_headers=["Content-Type"])
 ROOT=Path(__file__).resolve().parents[2]
@@ -53,11 +53,16 @@ def climate_summary():
         logger.exception("Could not read climate summary data")
         raise HTTPException(status_code=503,detail="Climate summary data is unavailable.") from exc
     if not isinstance(summary,dict): raise HTTPException(status_code=503,detail="Climate summary data is unavailable.")
+    try:
+        validate_climate_summary(summary)
+    except ClimateDataError as exc:
+        logger.error("Climate summary schema is invalid: %s",exc)
+        raise HTTPException(status_code=503,detail="Climate summary data is unavailable.") from exc
     return summary
 @app.get("/api/crops")
 def crops():
     catalog=_read_reference_json(ROOT/"data/reference/crop_catalog.json")
-    if not isinstance(catalog.get("records"),list): raise ReferenceDataError("crop catalog has an invalid schema")
+    validate_crop_catalog(catalog)
     return catalog
 @app.get("/api/soil/profile")
 def soil_profile():

@@ -20,6 +20,47 @@ class ClimateDataError(RuntimeError):
 class ReferenceDataError(RuntimeError):
     """A required crop, rule, or soil reference dataset is missing or unusable."""
 
+def validate_crop_catalog(catalog: dict[str, Any]) -> None:
+    records=catalog.get("records")
+    if not isinstance(records,list): raise ReferenceDataError("crop catalog records must be a list")
+    if any(not isinstance(record,dict) for record in records): raise ReferenceDataError("crop catalog records must be objects")
+    if any(not isinstance(record.get("crop_id"),str) or not record["crop_id"].strip() for record in records): raise ReferenceDataError("crop catalog records require crop_id")
+    if any(not isinstance(record.get("crop_name"),str) or not record["crop_name"].strip() for record in records): raise ReferenceDataError("crop catalog records require crop_name")
+    if any(not isinstance(record.get("source_references",[]),list) for record in records): raise ReferenceDataError("crop catalog source_references must be lists")
+    if any(not isinstance(record.get(key,{}),dict) for record in records for key in ("temperature","soil_ph","growth_duration","rainfall","water_requirement","soil_characteristics","legume")):
+        raise ReferenceDataError("crop catalog assessment sections must be objects")
+    for record in records:
+        for section in ("temperature","soil_ph"):
+            value=record.get(section,{})
+            if any(not isinstance(value.get(bound,{}),dict) for bound in ("optimal","absolute")):
+                raise ReferenceDataError(f"crop catalog {section} thresholds must be objects")
+
+def validate_rotation_rules(rules: dict[str, Any]) -> None:
+    compatibility=rules.get("compatibility",[])
+    if not isinstance(compatibility,list): raise ReferenceDataError("rotation compatibility rules must be a list")
+    for rule in compatibility:
+        if not isinstance(rule,dict) or any(not isinstance(rule.get(key),str) for key in ("from","to","classification")):
+            raise ReferenceDataError("rotation compatibility entries require from, to, and classification")
+        if not isinstance(rule.get("source_urls",[]),list): raise ReferenceDataError("rotation rule source_urls must be a list")
+    windows=rules.get("planting_windows",{})
+    if not isinstance(windows,dict): raise ReferenceDataError("planting_windows must be an object")
+    for window in windows.values():
+        if isinstance(window,list):
+            for item in window:
+                if not isinstance(item,dict) or not isinstance(item.get("start_month"),int) or not isinstance(item.get("end_month"),int):
+                    raise ReferenceDataError("planting window entries require start_month and end_month")
+                if not 1<=item["start_month"]<=12 or not 1<=item["end_month"]<=12:
+                    raise ReferenceDataError("planting window months must be between 1 and 12")
+        elif not isinstance(window,dict):
+            raise ReferenceDataError("planting window values must be objects or lists")
+
+def validate_climate_summary(summary: dict[str, Any]) -> None:
+    period=summary.get("period")
+    if period is not None and (not isinstance(period,dict) or not isinstance(period.get("start"),str) or not isinstance(period.get("end"),str)):
+        raise ClimateDataError("climate summary period must contain string start and end dates")
+    if "source_url" in summary and summary["source_url"] is not None and not isinstance(summary["source_url"],str):
+        raise ClimateDataError("climate summary source_url must be a string")
+
 def _provenance(summary: dict[str, Any], climate_period: str | None) -> Provenance:
     soil_path=ROOT/"data/processed/soil/soilgrids_profile.json"
     try:
@@ -39,19 +80,22 @@ def _load():
         rules=json.loads(RULES.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ReferenceDataError("crop catalog or rotation rules are unavailable or invalid") from exc
-    if not isinstance(catalog,dict) or not isinstance(catalog.get("records"),list): raise ReferenceDataError("crop catalog has an invalid schema")
+    if not isinstance(catalog,dict): raise ReferenceDataError("crop catalog must be an object")
+    validate_crop_catalog(catalog)
     try:
         records={x["crop_id"]:x for x in catalog["records"]}
     except (TypeError, KeyError) as exc:
         raise ReferenceDataError("crop catalog has an invalid schema") from exc
     if set(records)!={"rice","maize","mung_bean","soybean"}: raise ReferenceDataError("verified crop catalog must contain all four pilot crops")
-    if not isinstance(rules,dict): raise ReferenceDataError("rotation rules have an invalid schema")
+    if not isinstance(rules,dict): raise ReferenceDataError("rotation rules must be an object")
+    validate_rotation_rules(rules)
     climate_path=CLIMATE if CLIMATE.exists() else ROOT/"shared/fixtures/climate-placeholder.json"
     try:
         summary=json.loads(climate_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ClimateDataError("historical climate summary is unavailable or invalid") from exc
     if not isinstance(summary,dict): raise ClimateDataError("historical climate summary must be a JSON object")
+    validate_climate_summary(summary)
     return records,rules,summary
 
 def _window(start: date|None, days: int|None) -> tuple[pd.DataFrame|None,str]:
