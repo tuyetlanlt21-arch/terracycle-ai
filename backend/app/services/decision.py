@@ -1,6 +1,7 @@
 """Time-basis-aware, evidence-driven crop rotation assessment."""
 from __future__ import annotations
 import json
+import re
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -41,8 +42,40 @@ def _calendar(target,planting_date,rules):
     sources=[x.get("source_url") for x in window if x.get("source_url")]; ok=any(x["start_month"]<=planting_date.month<=x["end_month"] for x in window)
     return ("PASS","planting date is inside verified planting window",sources) if ok else ("FAIL","planting date is outside verified planting windows",sources)
 
+def _salinity_status(crop: dict[str, Any], ec: float | None) -> tuple[str, str]:
+    if ec is None: return "UNKNOWN", "soil salinity EC is missing; salinity compatibility cannot be verified"
+    match = re.search(r"<\s*(\d+(?:\.\d+)?)", str(crop.get("soil_characteristics", {}).get("salinity_optimal", "")))
+    if not match: return "UNKNOWN", "crop salinity threshold is not structured in the catalog"
+    limit = float(match.group(1))
+    return ("FAIL", f"soil salinity EC {ec:g} dS/m meets or exceeds the sourced crop limit") if ec >= limit else ("PASS", "soil salinity EC is below the sourced crop limit")
+
+def _water_status(crop: dict[str, Any], farm) -> tuple[str, str]:
+    requirement = crop.get("water_requirement", {})
+    if requirement.get("min_mm_season") is None: return "UNKNOWN", "seasonal crop-water requirement is unavailable"
+    if farm.irrigation_available is False and farm.freshwater_availability == "limited": return "FAIL", "verified crop-water requirement exists but irrigation is unavailable and freshwater is limited"
+    if farm.irrigation_available is True and farm.irrigation_water_ec is None: return "UNKNOWN", "irrigation-water EC is missing; water salinity compatibility cannot be verified"
+    if farm.irrigation_available is None or farm.freshwater_availability == "unknown": return "UNKNOWN", "irrigation/freshwater availability is incomplete; rainfall is not irrigation demand"
+    return "PASS", "water access is reported; crop demand still requires field water-balance verification"
+
+def _strategy_rank(target: str, current: str, records: dict[str, Any], strategy: str, priority: str) -> tuple:
+    crop = records[target]
+    is_legume = bool(crop.get("legume", {}).get("is_legume"))
+    water_max = crop.get("water_requirement", {}).get("max_mm_season")
+    if strategy == "current_practice": base = (target != current, 0 if target == current else 1)
+    elif strategy == "water_saving":
+        sensitivity = crop.get("water_requirement", {}).get("drought_sensitivity", "unknown")
+        sensitivity_rank = {"low": 0, "low-medium": 1, "medium": 2, "medium-high": 3, "high": 4, "unknown": 5}.get(sensitivity, 5)
+        base = (sensitivity_rank, water_max if water_max is not None else float("inf"))
+    else: base = (not is_legume, 0 if is_legume else 1)
+    priority_bonus = {"water": 0 if strategy == "water_saving" else 1, "soil": 0 if strategy == "soil_recovery" else 1}.get(priority, 0)
+    return (*base, priority_bonus, target)
+
 def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
+    records,rules,summary=_load()
     records,rules,summary=_load(); candidates=scenario.candidate_crop_ids or list(records); current=scenario.farm.current_crop.strip().lower().replace(" ","_"); daily_period=f"{summary['period']['start']}–{summary['period']['end']}"; recommendations=[]; rejected=[]; missing=[]
+    if current not in records:
+        return RotationCompareResponse(recommendations=[], rejected_alternatives=[RejectedAlternative(crop_id=current, sequence=[current], eligibility="FAIL", reasons=["current crop is absent from verified catalog"], sources=[])], missing_data_warnings=["Current crop is unsupported; no rotation comparison is scientifically valid."], warnings=["NASA POWER is historical climate context, not a future forecast."], provenance={"climate_source":"NASA POWER","climate_period":daily_period,"forecast_available":False}, scoring={"weights":WEIGHTS})
+    candidates = sorted([target for target in candidates if target in records], key=lambda target: _strategy_rank(target, current, records, scenario.strategy, scenario.farm.farmer_priority)) + [target for target in candidates if target not in records]
     for target in candidates:
         if target not in records:
             rejected.append(RejectedAlternative(crop_id=target,sequence=[current,target],eligibility="FAIL",reasons=["crop is absent from verified catalog"],sources=[]));continue
@@ -55,16 +88,16 @@ def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
         rainfall_reference=crop.get("rainfall",{}); annual_note=f"annual rainfall reference: {rainfall_reference.get('optimal',{}).get('min_mm_year')}-{rainfall_reference.get('optimal',{}).get('max_mm_year')} mm/year; context only"
         if scenario.farm.soil_ph is None: soil_status,soil_reason="UNKNOWN","soil pH is missing; SoilGrids has no values"
         else: soil_status,soil_reason=_range(scenario.farm.soil_ph,soil.get("optimal",{}),soil.get("absolute",{}),"min","max")
-        water=crop.get("water_requirement",{}); water_status="UNKNOWN"; water_reason="seasonal crop-water requirement is unavailable" if water.get("min_mm_season") is None else "irrigation demand cannot be inferred from rainfall; no field water-balance data supplied"
-        if water.get("source_url"):sources.append(water["source_url"])
-        statuses={transition,calendar,temperature_status,soil_status}; hard="FAIL" if "FAIL" in statuses else "UNKNOWN" if "UNKNOWN" in statuses or water_status=="UNKNOWN" else "PASS"; eligibility=hard; score=None
-        for status,reason in [(temperature_status,temperature_reason),(rainfall_status,rainfall_reason),(soil_status,soil_reason),(water_status,water_reason)]:
+        water_status,water_reason=_water_status(crop,scenario.farm); salinity_status,salinity_reason=_salinity_status(crop,scenario.farm.soil_salinity_ec)
+        statuses={transition,calendar,temperature_status,soil_status,salinity_status,water_status}; hard="FAIL" if "FAIL" in statuses else "UNKNOWN" if "UNKNOWN" in statuses else "PASS"; eligibility=hard; score=None
+        for status,reason in [(temperature_status,temperature_reason),(rainfall_status,rainfall_reason),(soil_status,soil_reason),(salinity_status,salinity_reason),(water_status,water_reason)]:
             if status=="UNKNOWN": warnings.append(reason); missing.append(f"{target}: {reason}")
         if scenario.strategy=="current_practice" and target==current:reasons.append("baseline continuation of current practice")
         elif scenario.strategy=="water_saving":reasons.append("water-saving ranking uses sourced water metadata only; no precise water saving is claimed")
         elif scenario.strategy=="soil_recovery":reasons.append("soil-recovery ranking recognizes sourced legume characteristics only; benefit is conditional")
-        rationale=reasons+[annual_note,temperature_reason,rainfall_reason,water_reason,soil_reason]; duration=crop.get("growth_duration",{}).get("max_days")
-        item=RotationRecommendation(sequence=[current,target],crop_id=target,crop_name=crop["crop_name"],strategy=scenario.strategy,eligibility=eligibility,score=score,growth_duration_days=duration,hard_constraints_pass=hard,suitability={"temperature":temperature_status,"rainfall_window":rainfall_status,"water":water_status,"soil":soil_status},rationale=rationale,warnings=sorted(set(warnings)),sources=sorted(set(x for x in sources if x)))
+        rationale=reasons+[annual_note,temperature_reason,rainfall_reason,water_reason,soil_reason,salinity_reason]; duration=crop.get("growth_duration",{}).get("max_days")
+        if all(x=="PASS" for x in statuses) and rainfall_status=="PASS": score=round(sum(x=="PASS" for x in statuses)/len(statuses)*100,2)
+        item=RotationRecommendation(sequence=[current,target],crop_id=target,crop_name=crop["crop_name"],strategy=scenario.strategy,eligibility=eligibility,score=score,growth_duration_days=duration,hard_constraints_pass=hard,suitability={"temperature":temperature_status,"rainfall_window":rainfall_status,"water":water_status,"soil":soil_status,"salinity":salinity_status},rationale=rationale,warnings=sorted(set(warnings)),sources=sorted(set(x for x in sources if x)))
         (recommendations if eligibility!="FAIL" else rejected).append(item if eligibility!="FAIL" else RejectedAlternative(crop_id=target,sequence=[current,target],eligibility="FAIL",reasons=rationale,sources=item.sources))
     if not recommendations:missing.append("No eligible or assessable alternatives were returned.")
     return RotationCompareResponse(recommendations=recommendations,rejected_alternatives=rejected,missing_data_warnings=sorted(set(missing)),warnings=["NASA POWER is historical climate context, not a future forecast.","Precipitation is not evapotranspiration or irrigation demand.","UNKNOWN is not PASS; null scores are intentional when suitability cannot be calculated."],provenance={"climate_source":"NASA POWER","climate_period":daily_period,"climate_source_url":summary.get("source_url",""),"soil_status":json.loads((ROOT/"data/processed/soil/soilgrids_profile.json").read_text(encoding="utf-8")).get("status","unavailable"),"forecast_available":False},scoring={"weights":WEIGHTS,"score_definition":"null unless all required time-window, water and soil dimensions are PASS","threshold_time_basis":{"crop_rainfall":"annual mm/year from ECOCROP; context only","crop_water_requirement":"growing-season mm/season from FAO; not irrigation demand"},"annual_rainfall_policy":"annual ECOCROP rainfall thresholds are context only; never compared with seasonal totals","window_rainfall_policy":"daily precipitation is summed over planting_date through verified growth duration; no water-demand claim"})
