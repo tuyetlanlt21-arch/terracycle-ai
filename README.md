@@ -1,14 +1,11 @@
-# TerraCycle AI / SaltShift
+# TerraCycle AI
 
-Modular NASA Earth-observation decision support prototype for salt-farm batch response to unexpected rain.
+Climate-adaptive crop-rotation decision support for NASA Space Apps 2026 Field Shift.
 
-> **Challenge-fit gate:** Salt production is not crop rotation. Confirm eligibility for NASA Field Shift or change challenge before presenting this as a compliant Field Shift submission.
+- `datascience/`: NASA POWER, SoilGrids and ECOCROP adapters
+- `backend/`: FastAPI farm, soil, climate and rotation contracts
+- `frontend/`: React/Vite decision interface
+- `data/reference/`: traceable catalog/rules, with unavailable sources explicitly labeled
+- `docs/data-sources.md`: provenance and limitations
 
-## Modules
-- `frontend/` — React + Vite + TypeScript client
-- `backend/` — FastAPI HTTP endpoints + scenario evaluation
-- `datascience/` — NASA POWER import/normalization and transparent decision engine
-- `shared/` — example request/response JSON contracts
-- `docs/` — module ownership, architecture and sources
-
-Use the setup instructions in each module. All demo values are illustrative, not a forecast or measured salt losses.
+NASA POWER is historical context, not a 48-hour forecast. Soil salinity EC and irrigation-water EC remain farmer/local inputs. No scientific values are fabricated.
