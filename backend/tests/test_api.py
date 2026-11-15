@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 import pytest
 import app.main as main
 import app.services.decision as decision
+from app.models import EvaluationResult, Provenance, RotationCompareResponse, RotationRecommendation, ScoringMetadata
 from app.main import app
 client=TestClient(app)
 
@@ -179,8 +180,9 @@ def test_unexpected_server_error_is_generic_and_logged(monkeypatch, caplog):
     monkeypatch.setattr(main,"compare_rotation",fail_comparison)
     safe_client=TestClient(app,raise_server_exceptions=False)
     with caplog.at_level(logging.ERROR):
-        response=safe_client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
+        response=safe_client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"},headers={"Origin":"http://localhost:5173"})
     assert response.status_code==500
+    assert response.headers.get("access-control-allow-origin")=="http://localhost:5173"
     assert response.json()=={"detail":"Internal server error."}
     assert "private implementation detail" not in response.text
     assert "Unhandled backend error" in caplog.text
@@ -223,6 +225,17 @@ def test_compare_with_available_farm_inputs_returns_sourced_assessment():
     assert item["suitability"]["rainfall_window"]=="PASS"
     assert item["score"] is None
 
+def test_location_compare_returns_unknown_when_location_data_is_unavailable(monkeypatch):
+    monkeypatch.setattr(decision, "load_location", lambda *args, **kwargs: decision.LocationData(
+        climate=None, daily_path=None, soil=None,
+        availability={"climate":"unavailable", "soil":"unavailable"},
+        warnings=["NASA POWER retrieval failed for requested coordinates: ConnectionError; no values were fabricated."],
+    ))
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"latitude":10.88424958676884,"longitude":106.78349429498437},"strategy":"current_practice","candidate_crop_ids":["rice"]})
+    assert response.status_code==200
+    assert response.json()["recommendations"][0]["eligibility"]=="UNKNOWN"
+    assert any("ConnectionError" in warning for warning in response.json()["provenance"]["warnings"])
+
 def test_compare_with_missing_soil_measurements_keeps_soil_unknown():
     response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01","soil_ph":None,"soil_salinity_ec":None,"irrigation_water_ec":None,"irrigation_available":None},"strategy":"soil_recovery","candidate_crop_ids":["rice"]})
     assert response.status_code==200
@@ -264,6 +277,54 @@ def test_every_strategy_returns_unknown_when_required_evidence_is_missing(strate
     assert item["hard_constraints_pass"]=="UNKNOWN"
     assert item["score"] is None
     assert "UNKNOWN" in item["suitability"].values()
+
+def test_compare_all_returns_three_strategies_and_loads_location_once(monkeypatch):
+    calls=[]
+    def load_once(*args, **kwargs):
+        calls.append((args, kwargs))
+        return decision.LocationData(
+            climate=None,
+            daily_path=None,
+            soil=None,
+            availability={"climate":"unavailable","soil":"unavailable"},
+            warnings=["fixture: upstream data intentionally unavailable"],
+        )
+    monkeypatch.setattr(decision, "load_location", load_once)
+    response=client.post("/api/rotations/compare-all",json={
+        "farm":{"current_crop":"rice","farm_area_ha":1,"latitude":10.383333,"longitude":105.45},
+        "candidate_crop_ids":["rice"],
+    })
+    assert response.status_code==200
+    body=response.json()
+    assert set(body["results"])=={"current_practice","water_saving","soil_recovery"}
+    for strategy, result in body["results"].items():
+        assert result["recommendations"][0]["strategy"]==strategy
+        recommendation=result["recommendations"][0]
+        assert isinstance(recommendation["climate_suitability"]["missing_evidence"],list)
+        assert isinstance(recommendation["farm_suitability"]["missing_evidence"],list)
+    assert len(calls)==1
+
+def test_compare_all_keeps_empty_evidence_arrays_in_response(monkeypatch):
+    def result_for(strategy):
+        recommendation=RotationRecommendation(
+            sequence=["rice","rice"],crop_id="rice",crop_name="Rice",strategy=strategy,
+            eligibility="PASS",score=100,growth_duration_days=None,hard_constraints_pass="PASS",
+            suitability={"temperature":"PASS","rainfall_window":"PASS","water":"PASS","soil":"PASS","salinity":"PASS"},
+            rationale=[],warnings=[],sources=[],climate_suitability=EvaluationResult(status="PASS"),
+            farm_suitability=EvaluationResult(status="PASS"),
+        )
+        return RotationCompareResponse(
+            recommendations=[recommendation],rejected_alternatives=[],missing_data_warnings=[],warnings=[],
+            provenance=Provenance(climate_source="NASA POWER",climate_period=None,climate_source_url=None,soil_status=None,forecast_available=False),
+            scoring=ScoringMetadata(weights={},score_definition="",threshold_time_basis={},annual_rainfall_policy="",window_rainfall_policy=""),
+        )
+    strategies=("current_practice","water_saving","soil_recovery")
+    monkeypatch.setattr(main,"compare_rotations",lambda farm,candidate_crop_ids:{strategy:result_for(strategy) for strategy in strategies})
+    response=client.post("/api/rotations/compare-all",json={"farm":{"current_crop":"rice","farm_area_ha":1}})
+    assert response.status_code==200
+    recommendation=response.json()["results"]["current_practice"]["recommendations"][0]
+    assert recommendation["climate_suitability"]["missing_evidence"]==[]
+    assert recommendation["farm_suitability"]["missing_evidence"]==[]
 
 def test_crop_catalog_with_missing_required_record_field_is_data_error(tmp_path, monkeypatch):
     records=[{"crop_id":crop_id,"crop_name":crop_id} for crop_id in ("rice","maize","mung_bean","soybean")]

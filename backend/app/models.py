@@ -71,6 +71,10 @@ class RotationScenario(BaseModel):
     strategy: Strategy
     candidate_crop_ids: list[str] = Field(default_factory=list, max_length=20)
 
+class RotationCompareBatchRequest(BaseModel):
+    farm: FarmProfile
+    candidate_crop_ids: list[str] = Field(default_factory=list, max_length=20)
+
 class SuitabilityAssessment(BaseModel):
     temperature: Status
     rainfall_window: Status
@@ -147,5 +151,8 @@ class RotationCompareResponse(BaseModel):
     warnings: list[str]
     provenance: Provenance
     scoring: ScoringMetadata
+
+class RotationCompareBatchResponse(BaseModel):
+    results: dict[Strategy, RotationCompareResponse]
 
 RotationRecommendation.model_rebuild()

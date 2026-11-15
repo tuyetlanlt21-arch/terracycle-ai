@@ -35,7 +35,7 @@ def _valid_climate_artifact(climate: dict[str, Any] | None, latitude: float, lon
     period = climate.get("period") or {}
     if period.get("start") and period["start"] > start: return False
     if period.get("end") and period["end"] < end: return False
-    from datascience.power import PARAMETERS
+    from datascience.power_parameters import PARAMETERS
     quality = climate.get("quality") or {}
     coverage = quality.get("coverage") or {}
     return set(climate.get("parameters", [])) == set(PARAMETERS) and coverage.get("valid") is True
@@ -44,7 +44,7 @@ def load_location(root: Path, latitude: float, longitude: float) -> LocationData
     power = root / "data/processed/power"
     soil_path = root / "data/processed/soil/soilgrids_profile.json"
     start, end = os.getenv("LOCATION_CLIMATE_START", "20200101"), os.getenv("LOCATION_CLIMATE_END", "20251231")
-    from datascience.power import PARAMETERS
+    from datascience.power_parameters import PARAMETERS
     cache_identity = json.dumps({"latitude": round(latitude, 6), "longitude": round(longitude, 6), "start": start, "end": end, "parameters": PARAMETERS, "dataset_version": "nasa-power-daily-v2"}, sort_keys=True)
     location_dir = root / "data/processed/location_cache" / hashlib.sha256(cache_identity.encode()).hexdigest()[:24]
     scoped_power = location_dir if (location_dir / "climate_summary.json").exists() else power
@@ -80,7 +80,7 @@ def load_location(root: Path, latitude: float, longitude: float) -> LocationData
             else:
                 from datascience.power import fetch_location as fetch_power_location
                 location_dir.mkdir(parents=True, exist_ok=True)
-                fetched = fetch_power_location(latitude, longitude, start, end, cache_dir=location_dir / ".cache")
+                fetched = fetch_power_location(latitude, longitude, start, end, timeout=8, retries=1, cache_dir=location_dir / ".cache")
                 if fetched.get("availability") != "unavailable":
                     climate = fetched
                     (location_dir / "climate_summary.json").write_text(json.dumps(climate), encoding="utf-8")
@@ -92,7 +92,7 @@ def load_location(root: Path, latitude: float, longitude: float) -> LocationData
     if enabled and soil is None:
         try:
             from datascience.soilgrids import fetch_location as fetch_soil_location
-            location_dir.mkdir(parents=True, exist_ok=True); soil = fetch_soil_location(latitude, longitude, cache_dir=location_dir / ".cache")
+            location_dir.mkdir(parents=True, exist_ok=True); soil = fetch_soil_location(latitude, longitude, timeout=8, retries=1, cache_dir=location_dir / ".cache")
             (location_dir / "soilgrids_profile.json").write_text(json.dumps(soil), encoding="utf-8"); warnings.extend(soil.get("warnings", []))
         except Exception as exc: warnings.append(f"SoilGrids retrieval failed for requested coordinates: {type(exc).__name__}; no values were fabricated.")
     daily = scoped_power / "nasa_power_daily.csv" if climate and (scoped_power / "nasa_power_daily.csv").exists() else None

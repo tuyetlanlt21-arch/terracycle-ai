@@ -7,8 +7,8 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 import pandas as pd
-from app.models import EvaluationResult, Provenance, RejectedAlternative, RotationCompareResponse, RotationRecommendation, RotationScenario, ScoringMetadata
-from app.services.location_data import load_location
+from app.models import EvaluationResult, FarmProfile, Provenance, RejectedAlternative, RotationCompareResponse, RotationRecommendation, RotationScenario, ScoringMetadata, Strategy
+from app.services.location_data import LocationData, load_location
 from datascience.evapotranspiration import reference_et0_fao56, crop_et_and_irrigation, effective_rainfall_scs
 
 ROOT=Path(__file__).resolve().parents[3]; CATALOG=ROOT/"data/reference/crop_catalog.json"; COEFFICIENTS=ROOT/"data/reference/crop_coefficients.json"; RULES=ROOT/"data/reference/rotation_rules.json"; CLIMATE=ROOT/"data/processed/power/climate_summary.json"; DAILY=ROOT/"data/processed/power/nasa_power_daily.csv"; WEIGHTS={"temperature":0.4,"water":0.3,"soil":0.3}
@@ -253,11 +253,11 @@ def _point_in_polygon(latitude: float, longitude: float, polygon: list[list[floa
         if (x1>longitude)!=(x2>longitude) and latitude < (y2-y1)*(longitude-x1)/(x2-x1)+y1: inside=not inside
     return inside
 
-def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
+def compare_rotation(scenario: RotationScenario, *, location_data: LocationData | None = None)->RotationCompareResponse:
     records,rules,summary=_load(); location=None; availability={}; location_warnings=[]; daily_path=Path("__missing_location_dataset__"); summary={}
     if scenario.farm.latitude is not None:
         location={"latitude":scenario.farm.latitude,"longitude":scenario.farm.longitude}
-        located=load_location(ROOT, scenario.farm.latitude, scenario.farm.longitude)
+        located=location_data or load_location(ROOT, scenario.farm.latitude, scenario.farm.longitude)
         availability,location_warnings,daily_path=located.availability,located.warnings,located.daily_path or Path("__missing_location_dataset__")
         summary=located.climate if isinstance(located.climate,dict) else {}
     candidates=scenario.candidate_crop_ids or list(records); current=scenario.farm.current_crop.strip().lower().replace(" ","_"); period=summary.get("period") or {}; daily_period=f"{period['start']}\u2013{period['end']}" if period.get("start") and period.get("end") else None; recommendations=[]; rejected=[]; missing=list(location_warnings)
@@ -319,3 +319,17 @@ def compare_rotation(scenario: RotationScenario)->RotationCompareResponse:
         (recommendations if eligibility!="FAIL" else rejected).append(item if eligibility!="FAIL" else RejectedAlternative(crop_id=target,sequence=[current,target],eligibility="FAIL",reasons=rationale,sources=item.sources))
     if not recommendations:missing.append("No eligible or assessable alternatives were returned.")
     return RotationCompareResponse(recommendations=recommendations,rejected_alternatives=rejected,missing_data_warnings=sorted(set(missing)),warnings=["NASA POWER is historical climate context, not a future forecast.","Precipitation is not evapotranspiration or irrigation demand.","UNKNOWN is not PASS; null scores are intentional when suitability cannot be calculated.",*location_warnings],provenance=_provenance(summary,daily_period,location,availability,location_warnings,rules,applicability_reason),scoring=_scoring_metadata())
+
+def compare_rotations(farm: FarmProfile, candidate_crop_ids: list[str]) -> dict[Strategy, RotationCompareResponse]:
+    """Evaluate all frontend strategies while resolving external location data once."""
+    location_data = None
+    if farm.latitude is not None:
+        location_data = load_location(ROOT, farm.latitude, farm.longitude)
+    strategies: tuple[Strategy, ...] = ("current_practice", "water_saving", "soil_recovery")
+    return {
+        strategy: compare_rotation(
+            RotationScenario(farm=farm, strategy=strategy, candidate_crop_ids=candidate_crop_ids),
+            location_data=location_data,
+        )
+        for strategy in strategies
+    }

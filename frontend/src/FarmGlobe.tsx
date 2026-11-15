@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import type {FarmProfile,Provenance} from './types';
+import {PILOT_LOCATION} from './pilot';
 
 const palette: Record<FarmProfile['farmer_priority'], [number, number, number, number]> = {
   soil: [106, 240, 201, .15], water: [100, 221, 255, .21],
@@ -20,15 +21,12 @@ export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['
   const focus = useRef<GlobeLocation | null>(null);
   const [location, setLocation] = useState<GlobeLocation | null>(null);
   const [status, setStatus] = useState('');
-  const [busy, setBusy] = useState(false);
   const [liveProvenance, setLiveProvenance] = useState<Provenance | undefined>(provenance);
-  const [coordinateDraft, setCoordinateDraft] = useState<{latitude?: number; longitude?: number}>({});
+  const [coordinateDraft, setCoordinateDraft] = useState<{latitude?: number; longitude?: number}>({latitude:PILOT_LOCATION.latitude,longitude:PILOT_LOCATION.longitude});
   const locator = useRef<HTMLButtonElement>(null);
   const close = useRef<HTMLButtonElement>(null);
-  const request = useRef<AbortController | null>(null);
   const view = useRef({cx: 0, cy: 0, radius: 1, centerLat: 15 * radians, rotation: 107 * radians});
 
-  useEffect(() => () => request.current?.abort(), []);
   useEffect(() => { const handler=(event:Event)=>setLiveProvenance((event as CustomEvent<Provenance>).detail); window.addEventListener('terracycle-provenance',handler); return()=>window.removeEventListener('terracycle-provenance',handler); }, []);
   useEffect(() => {
     if (!location) return;
@@ -39,54 +37,20 @@ export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['
   }, [Boolean(location)]);
 
   function exitLocation() {
-    request.current?.abort();
     focus.current = null;
     setLocation(null);
     setStatus('');
-    setBusy(false);
     requestAnimationFrame(() => locator.current?.focus());
   }
 
-  function locate() {
-    if (!navigator.geolocation) {
-      setStatus('Location requires a supported browser on HTTPS or localhost.');
-      return;
-    }
-    request.current?.abort();
-    const controller = new AbortController();
-    request.current = controller;
-    setBusy(true);
-    setStatus('Waiting for location permission…');
-    navigator.geolocation.getCurrentPosition(async ({coords}) => {
-      if (controller.signal.aborted) return;
-      const {latitude, longitude} = coords;
-      window.dispatchEvent(new CustomEvent('terracycle-location',{detail:{latitude,longitude}}));
-      const point = {lat: latitude * radians, lon: longitude * radians, label: ''};
-      focus.current = point;
-      setLocation(point);
-      setStatus('Looking up city and country…');
-      try {
-        const query = new URLSearchParams({latitude: String(latitude), longitude: String(longitude), localityLanguage: 'en'});
-        const response = await fetch('https://api.bigdatacloud.net/data/reverse-geocode-client?' + query, {
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(8000)]),
-        });
-        if (!response.ok) throw new Error('Place lookup failed');
-        const place = await response.json();
-        if (controller.signal.aborted) return;
-        const label = [...new Set([place.city || place.locality, place.countryName].filter(Boolean))].join(', ');
-        focus.current = {...point, label};
-        setLocation(focus.current);
-        setStatus(label ? '' : 'Place name unavailable. Showing device coordinates.');
-      } catch {
-        if (!controller.signal.aborted) setStatus('Place name unavailable. Showing device coordinates.');
-      } finally {
-        if (!controller.signal.aborted) setBusy(false);
-      }
-    }, error => {
-      if (controller.signal.aborted) return;
-      setBusy(false);
-      setStatus(error.code === 1 ? 'Location permission was denied. You can enable it in browser settings.' : 'Location unavailable. Try again.');
-    }, {timeout: 10000, maximumAge: 0});
+  function selectPilotLocation() {
+    const {latitude,longitude,label}=PILOT_LOCATION;
+    setCoordinateDraft({latitude,longitude});
+    window.dispatchEvent(new CustomEvent('terracycle-location',{detail:{latitude,longitude}}));
+    const point = {lat: latitude * radians, lon: longitude * radians, label};
+    focus.current = point;
+    setLocation(point);
+    setStatus('');
   }
 
   useEffect(() => {
@@ -245,7 +209,7 @@ export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['
     onKeyDown={event => {
       if (location && event.key === 'Escape') exitLocation();
       if (location && event.key === 'Tab') { event.preventDefault(); close.current?.focus(); }
-    }} aria-label={location ? "Device location on Earth" : "Interactive globe highlighting Vietnam"}>
+    }} aria-label={location ? "Long Xuyen pilot location on Earth" : "Interactive globe highlighting Vietnam"}>
     <canvas ref={canvas} tabIndex={location ? -1 : 0} aria-label="Rotate the globe with the arrow keys" onDoubleClick={event=>{const box=event.currentTarget.getBoundingClientRect();const camera=view.current;const x=(event.clientX-box.left-camera.cx)/camera.radius;const y=-(event.clientY-box.top-camera.cy)/camera.radius;const rho2=x*x+y*y;if(rho2>1)return;const z=Math.sqrt(Math.max(0,1-rho2));const sinC=Math.sin(camera.centerLat),cosC=Math.cos(camera.centerLat);const sinLat=cosC*y+sinC*z;const q=-sinC*y+cosC*z;const delta=Math.atan2(x,q);const latitude=Math.asin(Math.max(-1,Math.min(1,sinLat)))/radians;const longitude=((camera.rotation+delta)/radians+540)%360-180;window.dispatchEvent(new CustomEvent('terracycle-location',{detail:{latitude:Number(latitude.toFixed(6)),longitude:Number(longitude.toFixed(6))}}));}} onKeyDown={event=>{
       if(!location && (event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();yaw.current+=event.key==='ArrowLeft'?-.18:.18;}
     }} onPointerDown={event=>{if(location) return;drag.current={x:event.clientX,id:event.pointerId};event.currentTarget.setPointerCapture(event.pointerId);}}
@@ -254,11 +218,10 @@ export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['
     onLostPointerCapture={()=>{drag.current=null;}}/>
     <div className="globe-location-controls">
       {location ? <button ref={close} type="button" onClick={exitLocation}>Close map ×</button> :
-        <button ref={locator} type="button" onClick={locate} disabled={busy}
-          title="Your coordinates are sent to BigDataCloud to find your city and country.">◎ Use my location</button>}
+        <button ref={locator} type="button" onClick={selectPilotLocation}
+          title="For this demo, selects the Long Xuyen pilot coordinates.">◎ Use your location</button>}
       {location && <strong>{location.label || `${(location.lat/radians).toFixed(3)}°, ${(location.lon/radians).toFixed(3)}°`}</strong>}
       <div role="status">{status}</div>
-      {!location && <small>Shares coordinates with BigDataCloud for place names.</small>}
       {liveProvenance && <div className="globe-provenance"><b>Evaluated location</b><span>{liveProvenance.evaluated_location ? `${liveProvenance.evaluated_location.latitude}, ${liveProvenance.evaluated_location.longitude}` : 'not provided'}</span><span>NASA: {liveProvenance.availability?.climate || 'unknown'} · SoilGrids: {liveProvenance.availability?.soil || liveProvenance.soil_status || 'unknown'}</span><span>Period: {liveProvenance.climate_period || 'unknown'} · Rules: {liveProvenance.rule_set || 'unknown'}</span><span>Scope: {liveProvenance.supported_scope || 'unknown'}</span>{liveProvenance.applicability_reason && <span>{liveProvenance.applicability_reason}</span>}{(liveProvenance.warnings || []).map(warning => <span key={warning}>{warning}</span>)}</div>}
       {!location && <div className="globe-coordinates"><label>Latitude <input type="number" min="-90" max="90" step="0.000001" placeholder="Latitude" value={coordinateDraft.latitude??''} onChange={event=>{const latitude=event.target.value===''?undefined:Number(event.target.value);const next={...coordinateDraft,latitude};setCoordinateDraft(next);window.dispatchEvent(new CustomEvent('terracycle-location',{detail:next}))}}/></label><label>Longitude <input type="number" min="-180" max="180" step="0.000001" placeholder="Longitude" value={coordinateDraft.longitude??''} onChange={event=>{const longitude=event.target.value===''?undefined:Number(event.target.value);const next={...coordinateDraft,longitude};setCoordinateDraft(next);window.dispatchEvent(new CustomEvent('terracycle-location',{detail:next}))}}/></label></div>}
     </div>

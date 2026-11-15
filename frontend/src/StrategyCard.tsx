@@ -16,8 +16,8 @@ export function StrategyCard({strategy,response}:{strategy:Strategy;response:Com
     <p><b>Climate suitability:</b> {climate?.status||'Unavailable'}</p>
     <p><b>Farm suitability:</b> {farm?.status||'Unavailable'}</p>
     {item.final_decision===null&&<p className="warning"><b>Additional information required.</b></p>}
-    {climate?.missing_evidence.map(value=><p className="warning" key={`climate-${value}`}>Climate evidence: {value}</p>)}
-    {farm?.missing_evidence.map(value=><p className="warning" key={`farm-${value}`}>Farm evidence: {value}</p>)}
+    {climate?.missing_evidence?.map(value=><p className="warning" key={`climate-${value}`}>Climate evidence: {value}</p>)}
+    {farm?.missing_evidence?.map(value=><p className="warning" key={`farm-${value}`}>Farm evidence: {value}</p>)}
     {water&&<div className="water-evidence"><p><b>Rainfall:</b> growing period {format(water.growing_period_rainfall_mm)}; effective {format(water.effective_rainfall_mm)}</p><p><b>Water balance:</b> ET0 {format(water.et0_total_mm)}; ETc {format(water.etc_total_mm)}; irrigation deficit {format(water.irrigation_deficit_mm)}</p><p><b>Coverage:</b> {String((water.data_coverage as Record<string,unknown>|undefined)?.start||'Unavailable')}–{String((water.data_coverage as Record<string,unknown>|undefined)?.end||'Unavailable')}</p></div>}
     {item.warnings.map(warning=><p className="warning" key={warning}>{warning}</p>)}
     {item.sources.length>0&&<small>Evidence: {item.sources.length} source(s)</small>}

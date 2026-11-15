@@ -13,3 +13,4 @@ export interface SuitabilityAssessment {temperature:Status; rainfall_window:Stat
 export interface Provenance {climate_source:string; climate_period:string|null; climate_source_url:string|null; soil_status:string|null; forecast_available:boolean; evaluated_location?:{latitude:number;longitude:number}|null; availability?:Record<string,string>; observation_time?:string|null; warnings?:string[]; rule_set?:string|null; supported_scope?:string|null; applicability_reason?:string|null}
 export interface ScoringMetadata {weights:Record<string,number>; score_definition:string; threshold_time_basis:Record<string,string>; annual_rainfall_policy:string; window_rainfall_policy:string}
 export interface CompareResponse {recommendations:Recommendation[]; rejected_alternatives:RejectedAlternative[]; missing_data_warnings:string[]; warnings:string[]; provenance:Provenance; scoring:ScoringMetadata}
+export interface CompareAllResponse {results:Record<Strategy,CompareResponse>}
