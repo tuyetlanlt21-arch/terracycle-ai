@@ -1,57 +1,57 @@
 # TerraCycle AI
 
-**Hỗ trợ lựa chọn luân canh cây trồng dựa trên dữ liệu khí hậu lịch sử và điều kiện canh tác.**
+**Climate-adaptive crop rotation support grounded in historical climate data and local farming conditions.**
 
-TerraCycle AI là nguyên mẫu cho NASA Space Apps 2026 — Field Shift, với điểm thí điểm tại Long Xuyên, An Giang. Dự án giúp người dùng so sánh các phương án luân canh, xem căn cứ đánh giá và nhận diện dữ liệu còn thiếu trước khi xuống giống.
+TerraCycle AI is a prototype for NASA Space Apps 2026 — Field Shift, with a pilot site in Long Xuyen, An Giang, Vietnam. It helps users compare crop rotation options, understand the evidence behind each assessment, and identify missing information before planting.
 
-**[Trải nghiệm demo trên Vercel →](https://terracycle-ai.vercel.app/)**
+**[Explore the live demo on Vercel →](https://terracycle-ai.vercel.app/)**
 
-## Tính năng
+## Features
 
-- Nhập hồ sơ nông trại: cây trồng hiện tại, diện tích, ngày gieo trồng và ưu tiên canh tác.
-- Bổ sung dữ liệu đo tại ruộng như pH đất, độ mặn đất, độ mặn nước tưới và điều kiện cấp thoát nước.
-- So sánh ba chiến lược: canh tác hiện tại (`current_practice`), tiết kiệm nước (`water_saving`) và phục hồi đất (`soil_recovery`).
-- Đối chiếu cửa sổ sinh trưởng với dữ liệu NASA POWER và các quy tắc cây trồng có nguồn tham chiếu.
-- Hiển thị lý do đánh giá, phương án bị loại, nguồn dữ liệu và trạng thái `PASS`, `FAIL` hoặc `UNKNOWN`.
+- Enter a farm profile with the current crop, field area, planting date, and farming priority.
+- Add local measurements such as soil pH, soil salinity, irrigation-water salinity, and water-management conditions.
+- Compare three strategies: current practice (`current_practice`), water saving (`water_saving`), and soil recovery (`soil_recovery`).
+- Assess crop growth windows against NASA POWER records and documented crop rules.
+- Review assessment rationale, rejected options, data provenance, and `PASS`, `FAIL`, or `UNKNOWN` outcomes.
 
-## Dữ liệu và phạm vi đánh giá
+## Data and assessment scope
 
-| Nguồn | Vai trò |
+| Source | Role |
 | --- | --- |
-| NASA POWER | Dữ liệu khí hậu lịch sử: nhiệt độ, mưa, độ ẩm, bức xạ mặt trời và gió. Giao diện sử dụng bộ dữ liệu thí điểm cho giai đoạn 2020–2025. |
-| ISRIC SoilGrids | Adapter lấy thuộc tính đất mô hình hóa; hệ thống ghi nhận rõ khi nguồn không khả dụng. |
-| Danh mục cây trồng và quy tắc luân canh | Các bản ghi, ngưỡng và quy tắc có nguồn trong `data/reference/`; adapter ECOCROP chuẩn hóa dữ liệu xuất khi được cung cấp. |
-| Người dùng / đo đạc địa phương | pH, độ mặn đất, độ mặn nước tưới và điều kiện canh tác thực tế. |
+| NASA POWER | Historical temperature, precipitation, humidity, solar radiation, and wind. The interface uses the pilot dataset for 2020–2025. |
+| ISRIC SoilGrids | Adapter for modeled soil properties, with explicit availability reporting when the source cannot provide data. |
+| Crop catalog and rotation rules | Sourced records, thresholds, and rules in `data/reference/`. The ECOCROP adapter normalizes an export when one is supplied. |
+| Farmer inputs and local measurements | Soil pH, soil salinity, irrigation-water salinity, and field conditions. |
 
-NASA POWER cung cấp bối cảnh lịch sử, **không phải dự báo thời tiết**. Độ mặn đất và nước tưới không được suy ra từ SoilGrids. Dữ liệu chưa biết được giữ nguyên là `UNKNOWN`; hệ thống không tự điền các giá trị khoa học còn thiếu.
+NASA POWER provides **historical context, not a weather forecast**. Soil and irrigation-water salinity are never inferred from SoilGrids. Missing evidence remains `UNKNOWN`; the application does not fabricate scientific values.
 
-Các chiến lược hiện tại mang tính minh họa, sử dụng quy tắc xác định. Tên chiến lược không đồng nghĩa với hiệu quả tiết kiệm nước hay phục hồi đất đã được đo lường. Xem thêm [nguồn dữ liệu và giới hạn](docs/data-sources.md).
+The current strategies are deterministic and illustrative. Strategy names do not represent measured water savings or soil recovery. See [data sources and limitations](docs/data-sources.md) for details.
 
-## Công nghệ
+## Technology
 
 - **Frontend:** React 18, TypeScript, Vite, Lucide React.
 - **Backend:** Python 3.12, FastAPI, Pydantic, Uvicorn.
-- **Data science:** pandas, requests, các adapter NASA POWER, SoilGrids và ECOCROP.
-- **Kiểm tra:** pytest, Node.js test runner và GitHub Actions.
+- **Data science:** pandas, requests, and NASA POWER, SoilGrids, and ECOCROP adapters.
+- **Validation:** pytest, the Node.js test runner, and GitHub Actions.
 
-## Cấu trúc dự án
+## Project structure
 
 ```text
 terracycle-ai/
-├── frontend/       # Giao diện nhập hồ sơ và so sánh chiến lược
-├── backend/        # FastAPI, hợp đồng API và logic đánh giá
-├── datascience/    # Pipeline dữ liệu và bộ đánh giá luân canh
-├── data/           # Dữ liệu tham chiếu và dữ liệu đã xử lý
-├── shared/         # Fixture và dữ liệu dùng chung
-├── docs/           # Kiến trúc, hướng dẫn và báo cáo kiểm thử
-└── .github/        # CI và workflow auto-merge
+├── frontend/       # Farm profile and strategy comparison interface
+├── backend/        # FastAPI application, API contracts, and assessment logic
+├── datascience/    # Data pipelines and crop rotation assessment
+├── data/           # Reference and processed datasets
+├── shared/         # Shared fixtures and data
+├── docs/           # Architecture, development guides, and test reports
+└── .github/        # CI and auto-merge workflows
 ```
 
-## Chạy trên máy
+## Local setup
 
-Yêu cầu: **Python 3.12**, **Node.js 22** và **npm**. Các lệnh dưới đây dùng PowerShell, chạy từ thư mục gốc của repository.
+Requirements: **Python 3.12**, **Node.js 22**, and **npm**. Run the following PowerShell commands from the repository root.
 
-### 1. Backend
+### 1. Start the backend
 
 ```powershell
 py -3.12 -m venv .venv
@@ -64,11 +64,11 @@ Copy-Item backend/.env.example backend/.env
 - Swagger UI: <http://localhost:8000/docs>
 - Health check: <http://localhost:8000/health>
 
-Hướng dẫn Linux/macOS và Docker nằm trong [backend/README.md](backend/README.md).
+For Linux/macOS setup and Docker instructions, see [backend/README.md](backend/README.md).
 
-### 2. Frontend
+### 2. Start the frontend
 
-Mở terminal thứ hai:
+Open a second terminal:
 
 ```powershell
 cd frontend
@@ -77,35 +77,35 @@ npm ci
 npm run dev
 ```
 
-Mở địa chỉ Vite hiển thị trong terminal, mặc định là <http://localhost:5173>.
+Open the URL printed by Vite, usually <http://localhost:5173>.
 
-### 3. Sử dụng
+### 3. Compare strategies
 
-1. Mở **Farm Profile**, nhập cây trồng hiện tại, diện tích, ngày gieo trồng và ưu tiên.
-2. Chọn ngày gieo trồng trong giai đoạn lịch sử 2020–2025 mà giao diện hỗ trợ.
-3. Bổ sung các chỉ số đo thực tế nếu có; để trống dữ liệu chưa biết.
-4. Chọn **Compare three strategies** và đọc căn cứ của từng phương án. `UNKNOWN` cho biết cần thêm bằng chứng để đánh giá.
+1. Open **Farm Profile** and enter the current crop, field area, planting date, and priority.
+2. Choose a planting date within the historical 2020–2025 period supported by the interface.
+3. Add local measurements where available. Leave unknown values blank.
+4. Select **Compare three strategies** and read the evidence for each option. `UNKNOWN` means more evidence is needed for an assessment.
 
-## Cấu hình triển khai
+## Deployment configuration
 
-Frontend demo được triển khai tại **[terracycle-ai.vercel.app](https://terracycle-ai.vercel.app/)**. Backend cần được triển khai riêng để phục vụ các yêu cầu API.
+The frontend demo is hosted at **[terracycle-ai.vercel.app](https://terracycle-ai.vercel.app/)**. Deploy the backend separately to serve API requests.
 
-| Thành phần | Biến môi trường | Cấu hình |
+| Component | Environment variable | Configuration |
 | --- | --- | --- |
-| Frontend | `VITE_API_BASE_URL` | URL HTTPS công khai của backend, đặt trước khi build. Local dùng `http://localhost:8000`. |
-| Backend | `CORS_ORIGINS` | Danh sách origin frontend được phép, phân cách bằng dấu phẩy. Với demo: `https://terracycle-ai.vercel.app`. |
+| Frontend | `VITE_API_BASE_URL` | Public HTTPS backend URL, set before building. Use `http://localhost:8000` locally. |
+| Backend | `CORS_ORIGINS` | Comma-separated list of allowed frontend origins. For the demo, include `https://terracycle-ai.vercel.app`. |
 
-Build production của frontend không tự chuyển về localhost. Lưu cấu hình production trong phần environment của nền tảng hosting; không commit file `.env` hoặc khóa API.
+Production frontend builds do not fall back to localhost. Store production configuration in the hosting platform's environment settings. Never commit `.env` files or API keys.
 
-## Kiểm tra
+## Validation
 
-Từ thư mục gốc, sau khi cài các dependency ở trên:
+After installing the dependencies above, run the Python tests from the repository root:
 
 ```powershell
 & .venv/Scripts/python.exe -m pytest backend/tests datascience/tests -q
 ```
 
-Kiểm tra frontend:
+Run frontend tests and a production build:
 
 ```powershell
 cd frontend
@@ -113,31 +113,31 @@ npm test
 npm run build
 ```
 
-GitHub Actions chạy kiểm thử backend/data science, kiểm thử frontend và build frontend khi có pull request hoặc push vào các nhánh được cấu hình.
+GitHub Actions runs backend/data science tests, frontend tests, and a frontend build on pull requests and pushes to configured branches.
 
-## API chính
+## Main API endpoints
 
-| Phương thức | Endpoint | Chức năng |
+| Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Kiểm tra trạng thái dịch vụ |
-| `GET` | `/api/crops` | Lấy danh mục cây trồng |
-| `GET` | `/api/soil/profile` | Lấy hồ sơ đất và trạng thái dữ liệu |
-| `GET` | `/api/climate/summary` | Lấy tóm tắt khí hậu lịch sử |
-| `POST` | `/api/rotations/compare` | Đánh giá chiến lược theo hồ sơ nông trại |
+| `GET` | `/health` | Check service health |
+| `GET` | `/api/crops` | Retrieve the crop catalog |
+| `GET` | `/api/soil/profile` | Retrieve the soil profile and data availability |
+| `GET` | `/api/climate/summary` | Retrieve the historical climate summary |
+| `POST` | `/api/rotations/compare` | Assess a strategy against a farm profile |
 
-Xem schema yêu cầu và phản hồi tại Swagger UI khi backend đang chạy.
+See Swagger UI for request and response schemas while the backend is running.
 
-## Tài liệu liên quan
+## Documentation
 
-- [Kiến trúc hệ thống](docs/ARCHITECTURE.md)
-- [Hướng dẫn phát triển](docs/DEVELOPMENT.md)
-- [Thiết lập backend và Docker](backend/README.md)
-- [Pipeline và nguyên tắc đánh giá dữ liệu](datascience/README.md)
-- [Nguồn dữ liệu và giới hạn](docs/data-sources.md)
-- [Dữ liệu dùng chung](shared/README.md)
+- [System architecture](docs/ARCHITECTURE.md)
+- [Development guide](docs/DEVELOPMENT.md)
+- [Backend setup and Docker](backend/README.md)
+- [Data pipelines and assessment principles](datascience/README.md)
+- [Data sources and limitations](docs/data-sources.md)
+- [Shared data](shared/README.md)
 
-## CI và auto-merge
+## CI and opt-in auto-merge
 
-Để dùng auto-merge, quản trị viên cần cấu hình nhánh `main` yêu cầu pull request và các check `backend`, `frontend`; bật yêu cầu cập nhật nhánh trước khi merge, giữ các yêu cầu review hiện có và bật **Allow auto-merge** trong cài đặt repository.
+Before using auto-merge, a repository administrator should configure `main` to require a pull request and the `backend` and `frontend` checks. Require branches to be up to date, preserve existing review requirements, and enable **Allow auto-merge** in repository settings.
 
-Tạo nhãn `automerge`, sau đó gắn vào PR đã sẵn sàng, cùng repository và hướng đến `main` khi CI hoặc review bắt buộc còn đang chờ. Workflow sẽ yêu cầu GitHub tự squash merge khi đủ điều kiện. Nếu PR đã đủ điều kiện merge ngay, dùng nút merge thông thường. Để hủy yêu cầu đã đăng ký, chọn **Disable auto-merge** trên PR; chỉ gỡ nhãn không hủy yêu cầu đó.
+Create the `automerge` label and apply it to a ready, same-repository PR targeting `main` while CI or a required review is pending. The workflow requests GitHub's native squash auto-merge. If the PR is already eligible to merge immediately, use GitHub's regular merge control. To cancel a registered request, select **Disable auto-merge** on the PR; removing the label alone does not cancel it.
