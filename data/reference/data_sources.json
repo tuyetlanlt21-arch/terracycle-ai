@@ -1,0 +1,128 @@
+{
+  "schema_version": "1.0.0",
+  "sources": [
+    {
+      "id": "nasa_power_daily",
+      "title": "NASA POWER Daily API",
+      "publisher": "NASA POWER Project",
+      "url": "https://power.larc.nasa.gov/docs/services/api/temporal/daily/",
+      "data_kind": "historical_and_near_real_time_climate",
+      "fields": [
+        "daily mean/minimum/maximum air temperature",
+        "corrected precipitation",
+        "relative humidity",
+        "wind speed",
+        "solar radiation",
+        "surface pressure"
+      ],
+      "temporal_coverage": "Daily records from 1981 to near real time; exact retrieved period is shown with each response.",
+      "spatial_scope": "Point requests return gridded data; native spatial resolution varies by parameter.",
+      "limitations": [
+        "Historical or near-real-time observations are not a future weather forecast.",
+        "Gridded climate data do not measure conditions inside an individual farm plot.",
+        "The application must show the exact retrieved period and missing-data quality."
+      ]
+    },
+    {
+      "id": "fao_ecocrop",
+      "title": "FAO ECOCROP crop database",
+      "publisher": "Food and Agriculture Organization of the United Nations",
+      "url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/home",
+      "data_kind": "crop_reference_envelopes",
+      "fields": [
+        "crop temperature requirements",
+        "annual rainfall ranges",
+        "soil pH ranges",
+        "crop cycle and growth duration",
+        "crop soil characteristics"
+      ],
+      "temporal_coverage": "Crop reference records; record-specific validity dates are not consistently supplied.",
+      "spatial_scope": "General crop-level references, not plot-level or Long Xuyen-specific measurements.",
+      "limitations": [
+        "General crop envelopes do not establish a local planting calendar.",
+        "Annual rainfall ranges must not be compared directly with a short seasonal rainfall total.",
+        "Use crop-specific records and retain missing values where a record is incomplete."
+      ]
+    },
+    {
+      "id": "fao_crop_water",
+      "title": "FAO Crop Water Needs guidance",
+      "publisher": "Food and Agriculture Organization of the United Nations",
+      "url": "https://www.fao.org/4/s2022e/s2022e07.htm",
+      "data_kind": "crop_water_guidance",
+      "fields": [
+        "crop coefficient by growth stage where published",
+        "indicative crop water needs where published",
+        "growth-stage duration examples"
+      ],
+      "temporal_coverage": "Reference guidance; crop values are not tied to a specific year.",
+      "spatial_scope": "General agronomic guidance; not calibrated to a specific Long Xuyen field.",
+      "limitations": [
+        "Crop coefficients depend on local humidity, wind, crop stage and management.",
+        "Do not transfer coefficients between different crop species without a source that supports the transfer.",
+        "Crop evapotranspiration is not the same as irrigation demand or field water availability."
+      ]
+    },
+    {
+      "id": "isric_soilgrids",
+      "title": "SoilGrids global soil information",
+      "publisher": "ISRIC – World Soil Information",
+      "url": "https://docs.isric.org/globaldata/soilgrids/SoilGrids_faqs_01.html",
+      "data_kind": "gridded_soil_prediction",
+      "fields": [
+        "soil pH in water",
+        "texture fractions",
+        "coarse fragments",
+        "bulk density",
+        "total nitrogen",
+        "organic carbon",
+        "cation exchange capacity",
+        "volumetric water content"
+      ],
+      "temporal_coverage": "Global modeled soil products; prediction vintage must be reported when available.",
+      "spatial_scope": "Global predictions at 250 m, with coarser aggregated products also available.",
+      "limitations": [
+        "Predictions include uncertainty and are not a soil sample from the user's plot.",
+        "SoilGrids does not provide soil electrical conductivity in its published basic property list.",
+        "Do not infer soil salinity or irrigation-water salinity from SoilGrids."
+      ]
+    },
+    {
+      "id": "cgiar_mekong_salinity",
+      "title": "Digital salinity maps for crop and forecasted vulnerable areas in the Mekong River Delta",
+      "publisher": "Southern Institute of Water Resources Research and CGIAR Initiative on Asian Mega-Deltas",
+      "url": "https://cgspace.cgiar.org/items/97d7911f-259a-4f74-900a-f91f7778ee05",
+      "data_kind": "regional_salinity_risk_context",
+      "fields": [
+        "district-level salinity risk areas",
+        "crop vulnerability context"
+      ],
+      "temporal_coverage": "2024 report and associated map product; use the product vintage shown in its metadata.",
+      "spatial_scope": "Mekong River Delta at district level, not an individual field.",
+      "limitations": [
+        "The repository identifies the report review status as internal review.",
+        "Use as regional risk context only; it cannot replace field soil or irrigation-water EC measurements.",
+        "Forecasted vulnerable areas in the source product are not a weather forecast for this application."
+      ],
+      "review_status": "internal_review"
+    },
+    {
+      "id": "angiang_winter_spring_2026_27",
+      "title": "An Giang 2026–2027 winter–spring rice planting schedule notice",
+      "publisher": "People's Committee of Nhon My Commune, citing An Giang Department of Agriculture and Environment",
+      "url": "https://nhonmy.angiang.gov.vn/chuan-bi-vu-dong-xuan-tren-dia-ban-tinh",
+      "data_kind": "official_seasonal_calendar_notice",
+      "fields": [
+        "2026–2027 winter–spring rice planting windows",
+        "named An Giang production zones"
+      ],
+      "temporal_coverage": "The 2026–2027 winter–spring season only.",
+      "spatial_scope": "An Giang production zones named in the notice; not a general crop calendar for all coordinates.",
+      "limitations": [
+        "This notice concerns rice and must not be applied to soybean, maize or mung bean.",
+        "The calendar is season-specific and must not be reused as a permanent annual rule.",
+        "Local authorities may adjust timing based on water and field conditions."
+      ]
+    }
+  ]
+}
