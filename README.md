@@ -18,7 +18,7 @@ TerraCycle AI is a prototype for NASA Space Apps 2026 — Field Shift, with a pi
 
 | Source | Role |
 | --- | --- |
-| NASA POWER | Historical temperature, precipitation, humidity, solar radiation, and wind. The interface uses the pilot dataset for 2020–2025. |
+| NASA POWER | Historical temperature, precipitation, humidity, solar radiation, and wind. The packaged pilot dataset covers 2020-01-01 through 2026-10-31. |
 | ISRIC SoilGrids | Adapter for modeled soil properties, with explicit availability reporting when the source cannot provide data. |
 | Crop catalog and rotation rules | Sourced records, thresholds, and rules in `data/reference/`. The ECOCROP adapter normalizes an export when one is supplied. |
 | Farmer inputs and local measurements | Soil pH, soil salinity, irrigation-water salinity, and field conditions. |
@@ -26,6 +26,15 @@ TerraCycle AI is a prototype for NASA Space Apps 2026 — Field Shift, with a pi
 NASA POWER provides **historical context, not a weather forecast**. Soil and irrigation-water salinity are never inferred from SoilGrids. Missing evidence remains `UNKNOWN`; the application does not fabricate scientific values.
 
 The current strategies are deterministic and illustrative. Strategy names do not represent measured water savings or soil recovery. See [data sources and limitations](docs/data-sources.md) for details.
+
+## Reproducible decision example
+
+The authentic, point-specific NASA POWER daily export for the Long Xuyen pilot is packaged under `data/processed/power/long_xuyen_pilot/` (10.383333, 105.450000; 2020-01-01 through 2026-10-31; retrieved 2026-11-15). Its source URL and coverage metadata are in `climate_summary.json`; the daily series used for calculations is `nasa_power_daily.csv`. The backend uses this bundle only for matching pilot coordinates. Other coordinates require their own matching dataset or a successful NASA POWER fetch; the pilot data is never borrowed for another location.
+
+For a deterministic test, submit a historical `2024-11-01` rice scenario at the pilot coordinates with soil pH `6.0`, soil salinity EC `1.0 dS/m`, irrigation-water EC `0.5 dS/m`, irrigation available, freshwater adequate, drainage available, and water control available. These FarmProfile values are **hypothetical test inputs**, not farm observations. With candidate `rice`, the API should return `PASS`. Change soil salinity EC to `4.0 dS/m` and it should return `FAIL` against the sourced rice limit. Irrigation-water EC in FAO's `0.7–3.0 dS/m` restriction band remains `UNKNOWN` until field-specific management evidence is supplied; above `3.0 dS/m` is classified as `FAIL` in the screening. Sources and reasons are returned with the assessment.
+
+The `PASS` result demonstrates that the rules can evaluate a complete, in-scope historical scenario. It is not a future weather forecast or a claim about a real farm. A planting window extending beyond the available daily observations remains `UNKNOWN`.
+
 
 ## Technology
 
@@ -82,7 +91,7 @@ Open the URL printed by Vite, usually <http://localhost:5173>.
 ### 3. Compare strategies
 
 1. Open **Farm Profile** and enter the current crop, field area, planting date, and priority.
-2. Choose a planting date within the historical 2020–2025 period supported by the interface.
+2. Choose a planting date within the historical coverage shown by the interface. The packaged pilot dataset covers 2020-01-01 through 2026-10-31; the full crop growth window must be covered for assessment.
 3. Add local measurements where available. Leave unknown values blank.
 4. Select **Compare three strategies** and read the evidence for each option. `UNKNOWN` means more evidence is needed for an assessment.
 

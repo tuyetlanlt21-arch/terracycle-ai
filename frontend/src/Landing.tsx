@@ -16,7 +16,7 @@ export function Landing() {
         <p>Explore crop rotations for a pilot farm in Long Xuyên, An Giang, using historical climate and local growing conditions.</p>
         <a className="mission-cta" href="#farm-profile-title">Open Farm Profile <ArrowUpRight size={17}/></a>
       </header>
-      <FarmGlobe priority="yield" crop=""/>
+      <FarmGlobe priority="yield" crop="" showLocationControls={false}/>
     </div>
     <div className="landing-overview">
       <section><h2>Context</h2><p>Farmers weighing a crop change need to know whether the next crop fits the planting window, available water and soil conditions. Missing measurements make that choice harder.</p></section>
@@ -28,7 +28,7 @@ export function Landing() {
     </section>
     <section className="landing-band">
       <h2>NASA data used</h2>
-      <p>NASA POWER Daily Point provides historical records for Long Xuyên (10.383333° N, 105.450000° E), 2020–2025. Soil pH and salinity measurements come from local inputs. Future weather and field-level water availability require separate evidence.</p>
+      <p>NASA POWER Daily Point provides historical records for the selected coordinates; the retrieved coverage period is shown in Farm Profile. These records are not a weather forecast. Soil pH and salinity measurements come from local inputs, and field-level water availability requires separate evidence.</p>
       <dl className="landing-datasets">{variables.map(([code,name,description])=><div key={code}><dt><strong>{name}</strong><code>{code}</code></dt><dd>{description}</dd></div>)}</dl>
       <a href="https://power.larc.nasa.gov/docs/services/api/temporal/daily/" target="_blank" rel="noreferrer">NASA POWER Daily API <ArrowUpRight size={14}/></a>
     </section>
