@@ -1,6 +1,6 @@
 from typing import Literal, Optional
 from datetime import date
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 Priority = Literal["yield", "water", "soil", "income", "risk"]
 Strategy = Literal["current_practice", "water_saving", "soil_recovery"]
@@ -154,5 +154,28 @@ class RotationCompareResponse(BaseModel):
 
 class RotationCompareBatchResponse(BaseModel):
     results: dict[Strategy, RotationCompareResponse]
+
+class DataSource(BaseModel):
+    id: str
+    title: str
+    publisher: str
+    url: HttpUrl
+    data_kind: str
+    fields: list[str] = Field(min_length=1)
+    temporal_coverage: str
+    spatial_scope: str
+    limitations: list[str] = Field(min_length=1)
+    review_status: str | None = None
+
+class DataSourceCatalog(BaseModel):
+    schema_version: str
+    sources: list[DataSource] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def source_ids_are_unique(self):
+        ids = [source.id for source in self.sources]
+        if len(ids) != len(set(ids)):
+            raise ValueError("data source IDs must be unique")
+        return self
 
 RotationRecommendation.model_rebuild()

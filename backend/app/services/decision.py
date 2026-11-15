@@ -84,9 +84,16 @@ def validate_rotation_rules(rules: dict[str, Any]) -> None:
     for window in windows.values():
         if isinstance(window,list):
             for item in window:
-                if not isinstance(item,dict) or type(item.get("start_month")) is not int or type(item.get("end_month")) is not int:
-                    raise ReferenceDataError("planting window entries require start_month and end_month")
-                if not 1<=item["start_month"]<=12 or not 1<=item["end_month"]<=12:
+                if not isinstance(item,dict): raise ReferenceDataError("planting window entries must be objects")
+                dated="start_date" in item or "end_date" in item
+                if dated:
+                    if not isinstance(item.get("start_date"),str) or not isinstance(item.get("end_date"),str): raise ReferenceDataError("dated planting windows require start_date and end_date")
+                    try: start_date=date.fromisoformat(item["start_date"]); end_date=date.fromisoformat(item["end_date"])
+                    except ValueError as exc: raise ReferenceDataError("dated planting window dates must use YYYY-MM-DD") from exc
+                    if start_date.isoformat()!=item["start_date"] or end_date.isoformat()!=item["end_date"] or end_date<start_date: raise ReferenceDataError("dated planting window dates must be valid and ordered")
+                elif type(item.get("start_month")) is not int or type(item.get("end_month")) is not int:
+                    raise ReferenceDataError("planting window entries require month bounds or a date range")
+                if not dated and (not 1<=item["start_month"]<=12 or not 1<=item["end_month"]<=12):
                     raise ReferenceDataError("planting window months must be between 1 and 12")
                 if "source_url" in item and item["source_url"] is not None and not isinstance(item["source_url"],str):
                     raise ReferenceDataError("planting window source_url must be a string or null")
@@ -200,7 +207,11 @@ def _calendar(target,planting_date,rules,applicable=True):
     window=rules.get("planting_windows",{}).get(target)
     if planting_date is None:return "UNKNOWN","planting_date is missing",[]
     if not isinstance(window,list):return "UNKNOWN",(window or {}).get("note","verified planting window unavailable"),[(window or {}).get("source_url")] if (window or {}).get("source_url") else []
-    sources=[x.get("source_url") for x in window if x.get("source_url")]; ok=any(x["start_month"]<=planting_date.month<=x["end_month"] for x in window)
+    dated=[x for x in window if "start_date" in x and "end_date" in x]
+    year_specific=[x for x in dated if date.fromisoformat(x["start_date"]).year<=planting_date.year<=date.fromisoformat(x["end_date"]).year]
+    selected=year_specific or [x for x in window if "start_month" in x and "end_month" in x]
+    sources=[x.get("source_url") for x in selected if x.get("source_url")]
+    ok=any(date.fromisoformat(x["start_date"])<=planting_date<=date.fromisoformat(x["end_date"]) if "start_date" in x else x["start_month"]<=planting_date.month<=x["end_month"] for x in selected)
     return ("PASS","planting date is inside verified planting window",sources) if ok else ("FAIL","planting date is outside verified planting windows",sources)
 
 def _salinity_status(crop: dict[str, Any], ec: float | None) -> tuple[str, str]:

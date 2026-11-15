@@ -18,3 +18,5 @@ earthdata_token*
 *.log
 .pytest-tmp/
 .pytest-runtime/
+.pytest-runs/
+data/processed/location_cache/

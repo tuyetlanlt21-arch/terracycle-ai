@@ -1,7 +1,9 @@
 export type Strategy='current_practice'|'water_saving'|'soil_recovery';
 export type Status='PASS'|'FAIL'|'UNKNOWN';
 export type EvaluationStatus='PASS'|'FAIL'|'NEEDS_INPUT'|'DATA_UNAVAILABLE';
-export interface FarmProfile {current_crop:string; farm_area_ha:number; soil_ph:number|null; soil_salinity_ec:number|null; irrigation_water_ec:number|null; irrigation_available:boolean|null; freshwater_availability:'unknown'|'limited'|'adequate'; drainage_available?:boolean|null; water_control_available?:boolean|null; inoculation_confirmed?:boolean|null; farmer_priority:'yield'|'water'|'soil'|'income'|'risk'; planting_date:string|null; latitude:number|null; longitude:number|null}
+export interface FarmProfile {current_crop:string; farm_area_ha:number; soil_ph:number|null; soil_salinity_ec:number|null; irrigation_water_ec:number|null; irrigation_available:boolean|null; freshwater_availability:'unknown'|'limited'|'adequate'; drainage_available?:boolean|null; water_control_available?:boolean|null; inoculation_confirmed?:boolean|null; farmer_priority:'yield'|'water'|'soil'|'income'|'risk'; planning_month?:number|null; planting_date:string|null; latitude:number|null; longitude:number|null}
+export interface DataSource {id:string;title:string;publisher:string;url:string;data_kind:string;fields:string[];temporal_coverage:string;spatial_scope:string;limitations:string[];review_status?:string|null}
+export interface DataSourceCatalog {schema_version:string;sources:DataSource[]}
 export interface Crop {crop_id:string; crop_name:string; source_references?:string[]; source_reference?:string}
 export interface ClimateMonth {month:string; precipitation_sum_mm?:number|null; temperature_mean_c?:number|null; temperature_max_mean_c?:number|null; relative_humidity_mean_pct?:number|null; solar_radiation_mean_kwh_m2_day?:number|null; wind_speed_mean_m_s?:number|null; missing_count?:number}
 export interface ClimateSummary {source?:string; status?:string; period?:{start:string;end:string}; forecast_available?:boolean; monthly_metrics?:ClimateMonth[]; seasonal_features?:Record<string,unknown>; units?:Record<string,string>; [key:string]:unknown}

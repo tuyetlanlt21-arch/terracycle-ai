@@ -152,3 +152,23 @@ def test_window_treats_unrepresentable_date_range_as_unavailable(tmp_path, monke
     frame,reason=decision._window(date(9999,12,31),2)
     assert frame is None
     assert "missing required climate columns" in reason
+
+def test_dated_planting_window_uses_season_year_and_citation():
+    url="https://nhonmy.angiang.gov.vn/chuan-bi-vu-dong-xuan-tren-dia-ban-tinh"
+    rules={"planting_windows":{"rice":[
+        {"name":"legacy_winter_spring","start_month":11,"end_month":12,"source_url":"https://legacy.example/calendar"},
+        {"name":"winter_spring_2026_2027","start_date":"2026-11-01","end_date":"2026-12-31","source_url":url},
+    ]}}
+    status,reason,sources=decision._calendar("rice",date(2026,11,15),rules)
+    assert status=="PASS"
+    assert reason=="planting date is inside verified planting window"
+    assert sources==[url]
+
+def test_dated_planting_window_overrides_legacy_month_for_its_year():
+    rules={"planting_windows":{"rice":[
+        {"name":"legacy_winter_spring","start_month":11,"end_month":12,"source_url":"https://legacy.example/calendar"},
+        {"name":"winter_spring_2026_2027","start_date":"2026-11-01","end_date":"2026-12-31","source_url":"https://official.example/calendar"},
+    ]}}
+    status,_,sources=decision._calendar("rice",date(2026,10,31),rules)
+    assert status=="FAIL"
+    assert sources==["https://official.example/calendar"]

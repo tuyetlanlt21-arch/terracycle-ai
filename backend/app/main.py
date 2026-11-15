@@ -4,7 +4,8 @@ from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from app.models import RotationCompareBatchRequest, RotationCompareBatchResponse, RotationCompareResponse, RotationScenario
+from pydantic import ValidationError
+from app.models import DataSourceCatalog, RotationCompareBatchRequest, RotationCompareBatchResponse, RotationCompareResponse, RotationScenario
 from app.services.decision import ClimateDataError, ReferenceDataError, compare_rotation, compare_rotations, validate_climate_summary, validate_crop_catalog
 app=FastAPI(title="TerraCycle AI API",version="1.0.0",description="Climate-adaptive crop rotation decision support; not a forecast")
 
@@ -68,6 +69,14 @@ def crops():
 def soil_profile():
     path=ROOT/"data/processed/soil/soilgrids_profile.json"
     return _read_reference_json(path) if path.exists() else {"status":"unavailable","properties":[],"notes":["Run the SoilGrids adapter with coordinates; no values are fabricated."]}
+@app.get("/api/data-sources",response_model=DataSourceCatalog)
+def data_sources():
+    raw=_read_reference_json(ROOT/"data/reference/data_sources.json")
+    try:
+        return DataSourceCatalog.model_validate(raw)
+    except ValidationError as exc:
+        logger.error("Data source catalog schema is invalid: %s",exc)
+        raise ReferenceDataError("data source catalog is invalid") from exc
 @app.post("/api/rotations/compare",response_model=RotationCompareResponse)
 def rotations_compare(request: RotationScenario): return compare_rotation(request)
 

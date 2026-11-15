@@ -23,6 +23,22 @@ def test_health_and_contract():
 def test_new_endpoints():
     assert client.get("/api/crops").status_code==200; assert client.get("/api/soil/profile").status_code==200
 
+def test_data_sources_endpoint_returns_citations_and_scope_metadata():
+    response=client.get("/api/data-sources")
+    assert response.status_code==200
+    body=response.json()
+    assert body["schema_version"]=="1.0.0"
+    sources={source["id"]:source for source in body["sources"]}
+    assert {"nasa_power_daily","fao_ecocrop","fao_crop_water","isric_soilgrids","cgiar_mekong_salinity"} <= set(sources)
+    for source in sources.values():
+        assert source["title"]
+        assert source["publisher"]
+        assert source["url"].startswith("https://")
+        assert source["fields"]
+        assert source["temporal_coverage"]
+        assert source["spatial_scope"]
+        assert source["limitations"]
+
 def test_whitespace_only_current_crop_is_rejected():
     response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"   ","farm_area_ha":1},"strategy":"current_practice"})
     assert response.status_code==422
