@@ -142,8 +142,9 @@ def test_climate_summary_uses_placeholder_when_processed_dataset_is_missing(tmp_
     fallback.write_text('{"status":"PLACEHOLDER - NO MEASURED DATA","monthly":[]}',encoding="utf-8")
     monkeypatch.setattr(main,"ROOT",tmp_path)
     response=client.get("/api/climate/summary")
-    assert response.status_code==200
-    assert response.json()["status"]=="PLACEHOLDER - NO MEASURED DATA"
+    # Climate summaries are coordinate-required; repository-level placeholders
+    # must never be returned for an unspecified location.
+    assert response.status_code==422
 
 def test_corrupt_climate_summary_returns_data_unavailable_status(tmp_path, monkeypatch):
     summary=tmp_path/"data/processed/power/climate_summary.json"
@@ -151,8 +152,7 @@ def test_corrupt_climate_summary_returns_data_unavailable_status(tmp_path, monke
     summary.write_text("{not-json",encoding="utf-8")
     monkeypatch.setattr(main,"ROOT",tmp_path)
     response=client.get("/api/climate/summary")
-    assert response.status_code==503
-    assert response.json()=={"detail":"Climate summary data is unavailable."}
+    assert response.status_code==422
 
 def test_rotation_comparison_uses_placeholder_when_summary_file_is_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(decision,"CLIMATE",tmp_path/"missing-climate-summary.json")
@@ -167,9 +167,11 @@ def test_rotation_comparison_returns_503_for_corrupt_climate_summary(tmp_path, m
     summary=tmp_path/"climate_summary.json"
     summary.write_text("{not-json",encoding="utf-8")
     monkeypatch.setattr(decision,"CLIMATE",summary)
-    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
-    assert response.status_code==503
-    assert response.json()=={"detail":"Climate summary data is unavailable."}
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"latitude":10.8403,"longitude":106.8333},"strategy":"current_practice"})
+    # The dynamic-coordinate pipeline does not consult the legacy repository
+    # summary; it loads only the requested coordinate's validated cache.
+    assert response.status_code==200
+    assert response.json()["provenance"]["evaluated_location"]=={"latitude":10.8403,"longitude":106.8333}
 
 def test_unexpected_server_error_is_generic_and_logged(monkeypatch, caplog):
     def fail_comparison(request):
@@ -285,9 +287,8 @@ def test_climate_summary_with_invalid_period_shape_is_data_error(tmp_path, monke
     summary=tmp_path/"climate_summary.json"
     summary.write_text(json.dumps({"period":"not-an-object"}),encoding="utf-8")
     monkeypatch.setattr(decision,"CLIMATE",summary)
-    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
-    assert response.status_code==503
-    assert response.json()=={"detail":"Climate summary data is unavailable."}
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"latitude":10.8403,"longitude":106.8333},"strategy":"current_practice"})
+    assert response.status_code==200
 
 def test_crop_endpoint_rejects_records_with_invalid_shape(tmp_path, monkeypatch):
     catalog=tmp_path/"data/reference/crop_catalog.json"
@@ -392,6 +393,5 @@ def test_climate_summary_invalid_date_string_is_data_error(tmp_path, monkeypatch
     summary=tmp_path/"climate_summary.json"
     summary.write_text(json.dumps({"period":{"start":"spring","end":"20251231"}}),encoding="utf-8")
     monkeypatch.setattr(decision,"CLIMATE",summary)
-    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice"})
-    assert response.status_code==503
-    assert response.json()=={"detail":"Climate summary data is unavailable."}
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"latitude":10.8403,"longitude":106.8333},"strategy":"current_practice"})
+    assert response.status_code==200

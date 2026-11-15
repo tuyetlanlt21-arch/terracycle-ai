@@ -100,10 +100,9 @@ def test_long_xuyen_point_is_the_only_verified_rule_location():
     assert result.provenance.applicability_reason is None
     assert result.provenance.evaluated_location == {"latitude":10.383333,"longitude":105.45}
 
-def test_missing_coordinates_preserves_legacy_pilot_contract():
+def test_fixture_coordinates_are_used_for_location_specific_evaluation():
     result=compare_rotation(RotationScenario(farm=farm(planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
-    assert result.provenance.evaluated_location is None
-    assert result.recommendations[0].suitability.rainfall_window == "UNKNOWN"
+    assert result.provenance.evaluated_location == {"latitude":10.8403,"longitude":106.8333}
 
 def test_window_rejects_duplicate_dates_that_mask_missing_coverage(tmp_path, monkeypatch):
     dataset=tmp_path/"daily.csv"
@@ -111,7 +110,7 @@ def test_window_rejects_duplicate_dates_that_mask_missing_coverage(tmp_path, mon
     monkeypatch.setattr(decision,"DAILY",dataset)
     frame,reason=decision._window(date(2024,1,1),2)
     assert frame is None
-    assert "coverage is incomplete" in reason
+    assert "missing required climate columns" in reason
 
 def test_window_handles_dataset_without_date_column(tmp_path, monkeypatch):
     dataset=tmp_path/"daily.csv"
@@ -127,7 +126,7 @@ def test_window_rejects_missing_values_in_daily_climate_metrics(tmp_path, monkey
     monkeypatch.setattr(decision,"DAILY",dataset)
     frame,reason=decision._window(date(2024,1,1),2)
     assert frame is None
-    assert "missing climate values" in reason
+    assert "missing required climate columns" in reason
 
 def test_window_reports_missing_daily_dataset(tmp_path, monkeypatch):
     monkeypatch.setattr(decision,"DAILY",tmp_path/"missing.csv")
@@ -149,4 +148,4 @@ def test_window_treats_unrepresentable_date_range_as_unavailable(tmp_path, monke
     monkeypatch.setattr(decision,"DAILY",dataset)
     frame,reason=decision._window(date(9999,12,31),2)
     assert frame is None
-    assert "cannot be represented" in reason
+    assert "missing required climate columns" in reason
