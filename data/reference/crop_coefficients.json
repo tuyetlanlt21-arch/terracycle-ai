@@ -1,0 +1,11 @@
+{
+  "source": "FAO Irrigation and Drainage Paper 56 / FAO crop-water guidance",
+  "source_urls": ["https://www.fao.org/4/x0490e/x0490e0b.htm", "https://www.fao.org/4/s2022e/s2022e07.htm"],
+  "units": {"kc": "dimensionless", "duration": "days"},
+  "records": {
+    "rice": {"verified": true, "kc_mean": 1.06, "stages": [{"name":"initial","days":60,"kc":1.10},{"name":"mid","days":60,"kc":1.05},{"name":"late","days":30,"kc":1.00}], "total_days": 150, "assumptions": "paddy rice; humid climate; little-to-moderate wind; stage-weighted mean"},
+    "maize": {"verified": true, "kc_mean": 0.832, "stages": [{"name":"initial","days":20,"kc":0.40},{"name":"development","days":35,"kc":0.80},{"name":"mid","days":40,"kc":1.15},{"name":"late","days":30,"kc":0.70}], "total_days": 125, "assumptions": "grain maize; shortest FAO-56 stage schedule"},
+    "soybean": {"verified": true, "kc_mean": 0.826, "stages": [{"name":"initial","days":20,"kc":0.35},{"name":"development","days":30,"kc":0.75},{"name":"mid","days":60,"kc":1.10},{"name":"late","days":25,"kc":0.60}], "total_days": 135, "assumptions": "FAO bean/soybean schedule"},
+    "mung_bean": {"verified": false, "reason": "FAO table provides generic bean/pulse values, not a verified mung-bean coefficient for this pilot; no substitution is made"}
+  }
+}

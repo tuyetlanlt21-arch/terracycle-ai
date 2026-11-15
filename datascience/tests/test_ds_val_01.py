@@ -21,6 +21,8 @@ def farm(**overrides):
         "farmer_priority": "yield",
         "planning_month": 11,
         "planting_date": "2024-11-01",
+        "latitude": 10.8403,
+        "longitude": 106.8333,
     }
     data.update(overrides)
     return FarmProfile.model_validate(data)
@@ -113,8 +115,10 @@ def test_failures_are_rejected_with_reasons_and_no_recommendation():
 
 def test_transition_status_and_unsupported_candidate_are_explicit():
     incompatible = result("current_practice", ("maize",))
-    assert incompatible.rejected_alternatives[0].eligibility == "FAIL"
-    assert any("transition" in reason for reason in incompatible.rejected_alternatives[0].reasons)
+    item = incompatible.recommendations[0]
+    assert item.farm_suitability.status == "NEEDS_INPUT"
+    assert item.final_decision is None
+    assert any("regional" in value.lower() for value in item.farm_suitability.missing_evidence)
 
     unsupported = result("current_practice", ("cassava",))
     assert unsupported.rejected_alternatives[0].eligibility == "FAIL"
@@ -129,6 +133,7 @@ def test_evidence_sources_are_deduplicated_and_provenance_is_present():
     assert response.provenance["climate_source"] == "NASA POWER"
     assert response.provenance["forecast_available"] is False
     assert response.provenance["climate_period"]
+    assert response.provenance["availability"]["climate"] in {"partial", "available", "unavailable"}
     assert "score_definition" in response.scoring
 
 
@@ -147,4 +152,3 @@ def test_json_output_matches_current_api_contract():
     assert {"sequence", "crop_id", "crop_name", "strategy", "eligibility", "score", "growth_duration_days", "hard_constraints_pass", "suitability", "rationale", "warnings", "sources"} <= set(item)
     assert isinstance(item["sources"], list)
     assert item["score"] is None or isinstance(item["score"], (float, int))
-

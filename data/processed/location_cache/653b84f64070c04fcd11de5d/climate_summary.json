@@ -1,0 +1,883 @@
+{
+  "location": {
+    "latitude": -33.869,
+    "longitude": 151.209
+  },
+  "period": {
+    "start": "20200101",
+    "end": "20251231"
+  },
+  "parameters": [
+    "T2M",
+    "T2M_MIN",
+    "T2M_MAX",
+    "PRECTOTCORR",
+    "RH2M",
+    "WS2M",
+    "ALLSKY_SFC_SW_DWN",
+    "PS"
+  ],
+  "source": "NASA POWER offline export",
+  "source_url": "https://power.larc.nasa.gov/ ( imported from nasa_sydney.json )",
+  "retrieval_date": "2026-11-15",
+  "units": {
+    "T2M": "C",
+    "T2M_MIN": "C",
+    "T2M_MAX": "C",
+    "PRECTOTCORR": "mm/day",
+    "RH2M": "%",
+    "WS2M": "m/s",
+    "ALLSKY_SFC_SW_DWN": "kW-hr/m^2/day",
+    "PS": "kPa"
+  },
+  "daily_records": 2192,
+  "missing_count": 0,
+  "availability": "available",
+  "quality": {
+    "record_count": 2192,
+    "duplicate_dates": 0,
+    "missing_dates": [],
+    "missing_count": 0,
+    "missing_by_column": {
+      "date": 0,
+      "latitude": 0,
+      "longitude": 0,
+      "temperature_avg_c": 0,
+      "temperature_min_c": 0,
+      "temperature_max_c": 0,
+      "precipitation_mm_day": 0,
+      "relative_humidity_pct": 0,
+      "wind_speed_m_s": 0,
+      "solar_radiation_kwh_m2_day": 0,
+      "surface_pressure_kpa": 0
+    },
+    "units": {
+      "T2M": "C",
+      "T2M_MIN": "C",
+      "T2M_MAX": "C",
+      "PRECTOTCORR": "mm/day",
+      "RH2M": "%",
+      "WS2M": "m/s",
+      "ALLSKY_SFC_SW_DWN": "kW-hr/m^2/day",
+      "PS": "kPa"
+    },
+    "coverage": {
+      "valid": true,
+      "start": "2020-01-01",
+      "end": "2025-12-31",
+      "expected_record_count": 2192,
+      "record_count": 2192,
+      "duplicate_dates": 0,
+      "missing_dates": [],
+      "leap_days_present": true
+    }
+  },
+  "seasonal_features": {
+    "dry": {
+      "precipitation_sum_mm_mean": 128.94833333333335,
+      "precipitation_sum_mm_total": 3094.76,
+      "temperature_mean_c": 22.37545371179618,
+      "temperature_max_mean_c": 24.874937794639546,
+      "relative_humidity_mean_pct": 75.96258433643202,
+      "dry_month_count": 10,
+      "rainfall_cv": 0.7593805305702459,
+      "heat_stress_month_count": 0
+    },
+    "transition": {
+      "precipitation_sum_mm_mean": 78.31125,
+      "precipitation_sum_mm_total": 1879.47,
+      "temperature_mean_c": 18.90869937275986,
+      "temperature_max_mean_c": 21.528524641577064,
+      "relative_humidity_mean_pct": 73.26663620071685,
+      "dry_month_count": 17,
+      "rainfall_cv": 0.6486380081907404,
+      "heat_stress_month_count": 0
+    },
+    "wet": {
+      "precipitation_sum_mm_mean": 50.71875,
+      "precipitation_sum_mm_total": 1217.25,
+      "temperature_mean_c": 15.247994623655915,
+      "temperature_max_mean_c": 17.9249247311828,
+      "relative_humidity_mean_pct": 72.1575994623656,
+      "dry_month_count": 21,
+      "rainfall_cv": 1.0168327473916787,
+      "heat_stress_month_count": 0
+    },
+    "indicators": {
+      "dry_season_definition": "monthly precipitation <100 mm",
+      "heat_stress_definition": "monthly mean daily maximum temperature >=35 C",
+      "climate_indicators_are_derived_observations": true
+    }
+  },
+  "seasonal_metrics": [
+    {
+      "season_year": 2020,
+      "season": "dry",
+      "precipitation_sum_mm": 606.8100000000001,
+      "observation_count": 91,
+      "expected_day_count": 122,
+      "missing_count": 31,
+      "status": "UNKNOWN",
+      "historical_average_mm": 487.408
+    },
+    {
+      "season_year": 2020,
+      "season": "transition",
+      "precipitation_sum_mm": 279.91,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 313.245
+    },
+    {
+      "season_year": 2020,
+      "season": "wet",
+      "precipitation_sum_mm": 217.19,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 202.875
+    },
+    {
+      "season_year": 2021,
+      "season": "dry",
+      "precipitation_sum_mm": 579.6700000000001,
+      "observation_count": 121,
+      "expected_day_count": 121,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 487.408
+    },
+    {
+      "season_year": 2021,
+      "season": "transition",
+      "precipitation_sum_mm": 325.53000000000003,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 313.245
+    },
+    {
+      "season_year": 2021,
+      "season": "wet",
+      "precipitation_sum_mm": 125.86,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 202.875
+    },
+    {
+      "season_year": 2022,
+      "season": "dry",
+      "precipitation_sum_mm": 828.88,
+      "observation_count": 121,
+      "expected_day_count": 121,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 487.408
+    },
+    {
+      "season_year": 2022,
+      "season": "transition",
+      "precipitation_sum_mm": 406.39,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 313.245
+    },
+    {
+      "season_year": 2022,
+      "season": "wet",
+      "precipitation_sum_mm": 365.59000000000003,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 202.875
+    },
+    {
+      "season_year": 2023,
+      "season": "dry",
+      "precipitation_sum_mm": 335.53,
+      "observation_count": 121,
+      "expected_day_count": 121,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 487.408
+    },
+    {
+      "season_year": 2023,
+      "season": "transition",
+      "precipitation_sum_mm": 244.61,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 313.245
+    },
+    {
+      "season_year": 2023,
+      "season": "wet",
+      "precipitation_sum_mm": 77.34,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 202.875
+    },
+    {
+      "season_year": 2024,
+      "season": "dry",
+      "precipitation_sum_mm": 369.62,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 487.408
+    },
+    {
+      "season_year": 2024,
+      "season": "transition",
+      "precipitation_sum_mm": 377.14,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 313.245
+    },
+    {
+      "season_year": 2024,
+      "season": "wet",
+      "precipitation_sum_mm": 157.87,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 202.875
+    },
+    {
+      "season_year": 2025,
+      "season": "dry",
+      "precipitation_sum_mm": 323.34000000000003,
+      "observation_count": 121,
+      "expected_day_count": 121,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 487.408
+    },
+    {
+      "season_year": 2025,
+      "season": "transition",
+      "precipitation_sum_mm": 245.89000000000001,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 313.245
+    },
+    {
+      "season_year": 2025,
+      "season": "wet",
+      "precipitation_sum_mm": 273.4,
+      "observation_count": 122,
+      "expected_day_count": 122,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 202.875
+    },
+    {
+      "season_year": 2026,
+      "season": "dry",
+      "precipitation_sum_mm": 50.91000000000001,
+      "observation_count": 31,
+      "expected_day_count": 121,
+      "missing_count": 90,
+      "status": "UNKNOWN",
+      "historical_average_mm": 487.408
+    }
+  ],
+  "monthly_metrics": [
+    {
+      "year": 2020,
+      "month": "01",
+      "precipitation_sum_mm": 66.13000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 107.80666666666667
+    },
+    {
+      "year": 2020,
+      "month": "02",
+      "precipitation_sum_mm": 364.29,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 150.57666666666668
+    },
+    {
+      "year": 2020,
+      "month": "03",
+      "precipitation_sum_mm": 176.39,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 184.49166666666667
+    },
+    {
+      "year": 2020,
+      "month": "04",
+      "precipitation_sum_mm": 61.9,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 79.925
+    },
+    {
+      "year": 2020,
+      "month": "05",
+      "precipitation_sum_mm": 44.35,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 62.35666666666666
+    },
+    {
+      "year": 2020,
+      "month": "06",
+      "precipitation_sum_mm": 15.27,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 28.084999999999997
+    },
+    {
+      "year": 2020,
+      "month": "07",
+      "precipitation_sum_mm": 107.14999999999999,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 78.22166666666666
+    },
+    {
+      "year": 2020,
+      "month": "08",
+      "precipitation_sum_mm": 73.13,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 56.76500000000001
+    },
+    {
+      "year": 2020,
+      "month": "09",
+      "precipitation_sum_mm": 21.64,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 39.803333333333335
+    },
+    {
+      "year": 2020,
+      "month": "10",
+      "precipitation_sum_mm": 120.44,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.78
+    },
+    {
+      "year": 2020,
+      "month": "11",
+      "precipitation_sum_mm": 53.22,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 98.18333333333334
+    },
+    {
+      "year": 2020,
+      "month": "12",
+      "precipitation_sum_mm": 108.79000000000002,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.91833333333334
+    },
+    {
+      "year": 2021,
+      "month": "01",
+      "precipitation_sum_mm": 73.46,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 107.80666666666667
+    },
+    {
+      "year": 2021,
+      "month": "02",
+      "precipitation_sum_mm": 102.14999999999999,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 150.57666666666668
+    },
+    {
+      "year": 2021,
+      "month": "03",
+      "precipitation_sum_mm": 295.27,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 184.49166666666667
+    },
+    {
+      "year": 2021,
+      "month": "04",
+      "precipitation_sum_mm": 16.42,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 79.925
+    },
+    {
+      "year": 2021,
+      "month": "05",
+      "precipitation_sum_mm": 45.030000000000015,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 62.35666666666666
+    },
+    {
+      "year": 2021,
+      "month": "06",
+      "precipitation_sum_mm": 39.89,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 28.084999999999997
+    },
+    {
+      "year": 2021,
+      "month": "07",
+      "precipitation_sum_mm": 18.75,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 78.22166666666666
+    },
+    {
+      "year": 2021,
+      "month": "08",
+      "precipitation_sum_mm": 39.82,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 56.76500000000001
+    },
+    {
+      "year": 2021,
+      "month": "09",
+      "precipitation_sum_mm": 27.400000000000002,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 39.803333333333335
+    },
+    {
+      "year": 2021,
+      "month": "10",
+      "precipitation_sum_mm": 64.94000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.78
+    },
+    {
+      "year": 2021,
+      "month": "11",
+      "precipitation_sum_mm": 199.14000000000004,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 98.18333333333334
+    },
+    {
+      "year": 2021,
+      "month": "12",
+      "precipitation_sum_mm": 89.84,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.91833333333334
+    },
+    {
+      "year": 2022,
+      "month": "01",
+      "precipitation_sum_mm": 132.4,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 107.80666666666667
+    },
+    {
+      "year": 2022,
+      "month": "02",
+      "precipitation_sum_mm": 183.91,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 150.57666666666668
+    },
+    {
+      "year": 2022,
+      "month": "03",
+      "precipitation_sum_mm": 422.73,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 184.49166666666667
+    },
+    {
+      "year": 2022,
+      "month": "04",
+      "precipitation_sum_mm": 105.41000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 79.925
+    },
+    {
+      "year": 2022,
+      "month": "05",
+      "precipitation_sum_mm": 64.99,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 62.35666666666666
+    },
+    {
+      "year": 2022,
+      "month": "06",
+      "precipitation_sum_mm": 4.66,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 28.084999999999997
+    },
+    {
+      "year": 2022,
+      "month": "07",
+      "precipitation_sum_mm": 235.5,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 78.22166666666666
+    },
+    {
+      "year": 2022,
+      "month": "08",
+      "precipitation_sum_mm": 34.790000000000006,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 56.76500000000001
+    },
+    {
+      "year": 2022,
+      "month": "09",
+      "precipitation_sum_mm": 90.64000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 39.803333333333335
+    },
+    {
+      "year": 2022,
+      "month": "10",
+      "precipitation_sum_mm": 168.54999999999998,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.78
+    },
+    {
+      "year": 2022,
+      "month": "11",
+      "precipitation_sum_mm": 67.44,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 98.18333333333334
+    },
+    {
+      "year": 2022,
+      "month": "12",
+      "precipitation_sum_mm": 30.499999999999996,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.91833333333334
+    },
+    {
+      "year": 2023,
+      "month": "01",
+      "precipitation_sum_mm": 143.49,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 107.80666666666667
+    },
+    {
+      "year": 2023,
+      "month": "02",
+      "precipitation_sum_mm": 94.59000000000002,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 150.57666666666668
+    },
+    {
+      "year": 2023,
+      "month": "03",
+      "precipitation_sum_mm": 66.94999999999999,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 184.49166666666667
+    },
+    {
+      "year": 2023,
+      "month": "04",
+      "precipitation_sum_mm": 69.88,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 79.925
+    },
+    {
+      "year": 2023,
+      "month": "05",
+      "precipitation_sum_mm": 17.94,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 62.35666666666666
+    },
+    {
+      "year": 2023,
+      "month": "06",
+      "precipitation_sum_mm": 11.809999999999999,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 28.084999999999997
+    },
+    {
+      "year": 2023,
+      "month": "07",
+      "precipitation_sum_mm": 8.389999999999999,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 78.22166666666666
+    },
+    {
+      "year": 2023,
+      "month": "08",
+      "precipitation_sum_mm": 42.629999999999995,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 56.76500000000001
+    },
+    {
+      "year": 2023,
+      "month": "09",
+      "precipitation_sum_mm": 14.509999999999998,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 39.803333333333335
+    },
+    {
+      "year": 2023,
+      "month": "10",
+      "precipitation_sum_mm": 25.299999999999997,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.78
+    },
+    {
+      "year": 2023,
+      "month": "11",
+      "precipitation_sum_mm": 131.49,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 98.18333333333334
+    },
+    {
+      "year": 2023,
+      "month": "12",
+      "precipitation_sum_mm": 124.33,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.91833333333334
+    },
+    {
+      "year": 2024,
+      "month": "01",
+      "precipitation_sum_mm": 110.83999999999999,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 107.80666666666667
+    },
+    {
+      "year": 2024,
+      "month": "02",
+      "precipitation_sum_mm": 100.60000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 150.57666666666668
+    },
+    {
+      "year": 2024,
+      "month": "03",
+      "precipitation_sum_mm": 33.849999999999994,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 184.49166666666667
+    },
+    {
+      "year": 2024,
+      "month": "04",
+      "precipitation_sum_mm": 179.35000000000002,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 79.925
+    },
+    {
+      "year": 2024,
+      "month": "05",
+      "precipitation_sum_mm": 76.17,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 62.35666666666666
+    },
+    {
+      "year": 2024,
+      "month": "06",
+      "precipitation_sum_mm": 90.13,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 28.084999999999997
+    },
+    {
+      "year": 2024,
+      "month": "07",
+      "precipitation_sum_mm": 24.179999999999996,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 78.22166666666666
+    },
+    {
+      "year": 2024,
+      "month": "08",
+      "precipitation_sum_mm": 16.6,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 56.76500000000001
+    },
+    {
+      "year": 2024,
+      "month": "09",
+      "precipitation_sum_mm": 26.959999999999997,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 39.803333333333335
+    },
+    {
+      "year": 2024,
+      "month": "10",
+      "precipitation_sum_mm": 27.279999999999998,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.78
+    },
+    {
+      "year": 2024,
+      "month": "11",
+      "precipitation_sum_mm": 94.34,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 98.18333333333334
+    },
+    {
+      "year": 2024,
+      "month": "12",
+      "precipitation_sum_mm": 33.14,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.91833333333334
+    },
+    {
+      "year": 2025,
+      "month": "01",
+      "precipitation_sum_mm": 120.52000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 107.80666666666667
+    },
+    {
+      "year": 2025,
+      "month": "02",
+      "precipitation_sum_mm": 57.92000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 150.57666666666668
+    },
+    {
+      "year": 2025,
+      "month": "03",
+      "precipitation_sum_mm": 111.76,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 184.49166666666667
+    },
+    {
+      "year": 2025,
+      "month": "04",
+      "precipitation_sum_mm": 46.589999999999996,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 79.925
+    },
+    {
+      "year": 2025,
+      "month": "05",
+      "precipitation_sum_mm": 125.66000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 62.35666666666666
+    },
+    {
+      "year": 2025,
+      "month": "06",
+      "precipitation_sum_mm": 6.749999999999999,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 28.084999999999997
+    },
+    {
+      "year": 2025,
+      "month": "07",
+      "precipitation_sum_mm": 75.36,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 78.22166666666666
+    },
+    {
+      "year": 2025,
+      "month": "08",
+      "precipitation_sum_mm": 133.62,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 56.76500000000001
+    },
+    {
+      "year": 2025,
+      "month": "09",
+      "precipitation_sum_mm": 57.67,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 39.803333333333335
+    },
+    {
+      "year": 2025,
+      "month": "10",
+      "precipitation_sum_mm": 30.170000000000005,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.78
+    },
+    {
+      "year": 2025,
+      "month": "11",
+      "precipitation_sum_mm": 43.47,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 98.18333333333334
+    },
+    {
+      "year": 2025,
+      "month": "12",
+      "precipitation_sum_mm": 50.91000000000001,
+      "missing_count": 0,
+      "status": "PASS",
+      "historical_average_mm": 72.91833333333334
+    }
+  ],
+  "forecast_available": false
+}

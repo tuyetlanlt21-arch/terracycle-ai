@@ -1,6 +1,6 @@
 import json, logging, os
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -49,14 +49,11 @@ async def unhandled_error_handler(request: Request, exc: Exception):
 @app.get("/health")
 def health(): return {"status":"ok"}
 @app.get("/api/climate/summary")
-def climate_summary():
-    path=ROOT/"data/processed/power/climate_summary.json"; fallback=ROOT/"shared/fixtures/climate-placeholder.json"; source=path if path.exists() else fallback
-    try:
-        summary=json.loads(source.read_text(encoding="utf-8"))
-    except (OSError, ValueError) as exc:
-        logger.exception("Could not read climate summary data")
-        raise HTTPException(status_code=503,detail="Climate summary data is unavailable.") from exc
-    if not isinstance(summary,dict): raise HTTPException(status_code=503,detail="Climate summary data is unavailable.")
+def climate_summary(latitude: float = Query(..., ge=-90, le=90), longitude: float = Query(..., ge=-180, le=180)):
+    from app.services.location_data import load_location
+    located = load_location(ROOT, latitude, longitude)
+    summary = located.climate
+    if not isinstance(summary,dict): raise HTTPException(status_code=503,detail="Climate data is unavailable for the requested coordinates.")
     try:
         validate_climate_summary(summary)
     except ClimateDataError as exc:

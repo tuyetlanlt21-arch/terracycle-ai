@@ -10,7 +10,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 import pandas as pd
-from datascience.power import extract_growth_window
+from datascience.power import extract_growth_window, historical_growing_period_rainfall
 
 ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "data/reference/crop_catalog.json"
@@ -39,7 +39,8 @@ def assess_climate_window(frame: pd.DataFrame, crop: dict[str, Any], planting_da
     elif mean_temp < absolute.get("min_c", float("-inf")) or mean_temp > absolute.get("max_c", float("inf")): status, reason = "FAIL", "mean temperature exceeds the sourced absolute range"
     elif optimal.get("min_c") is not None and optimal.get("max_c") is not None and optimal["min_c"] <= mean_temp <= optimal["max_c"]: status, reason = "PASS", "mean growth-window temperature is within the sourced optimal range"
     else: status, reason = "UNKNOWN", "mean temperature is outside optimal but inside the sourced absolute range"
-    return {"status": status, "reason": reason, "coverage": coverage, "mean_temperature_c": mean_temp, "maximum_daily_temperature_c": max_temp, "rainfall_total_mm": float(window["precipitation_mm_day"].sum()) if window["precipitation_mm_day"].notna().all() else None, "rainfall_status": "UNKNOWN", "rainfall_reason": "catalog rainfall values are annual and cannot validate a seasonal rainfall window", "evidence": [temp.get("source_url")], "historical_observation_period": coverage["start"] + " to " + coverage["end"]}
+    rainfall = historical_growing_period_rainfall(frame, planting_date, int(duration))
+    return {"status": status, "reason": reason, "coverage": coverage, "mean_temperature_c": mean_temp, "maximum_daily_temperature_c": max_temp, "rainfall_total_mm": rainfall.get("rainfall_total_mm"), "rainfall_status": "UNKNOWN", "rainfall_reason": "no crop-specific growing-period rainfall threshold is sourced; rainfall is reported as evidence only", "rainfall_window": rainfall, "evidence": [temp.get("source_url")], "historical_observation_period": coverage["start"] + " to " + coverage["end"]}
 
 def validate_sequence(sequence: list[dict[str, Any]], current_crop: str | None = None) -> dict[str, Any]:
     """Validate chronological, non-overlapping crop periods.
