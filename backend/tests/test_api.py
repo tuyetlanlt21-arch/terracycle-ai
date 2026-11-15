@@ -238,7 +238,8 @@ def test_compare_with_available_farm_inputs_returns_sourced_assessment():
     assert item["suitability"]["temperature"]=="PASS"
     assert item["suitability"]["soil"]=="PASS"
     assert item["suitability"]["salinity"]=="PASS"
-    assert item["suitability"]["rainfall_window"]=="PASS"
+    assert item["suitability"]["rainfall_window"]=="UNKNOWN"
+    assert item["eligibility"]=="UNKNOWN"
     assert item["score"] is None
 
 def test_location_compare_returns_unknown_when_location_data_is_unavailable(monkeypatch):

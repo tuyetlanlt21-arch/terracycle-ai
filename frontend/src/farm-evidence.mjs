@@ -9,6 +9,9 @@ const labels = {
   irrigation_water_ec: 'Irrigation-water EC',
   irrigation_available: 'Irrigation available',
   freshwater_availability: 'Freshwater availability',
+  drainage_available: 'Drainage available',
+  water_control_available: 'Water control available',
+  inoculation_confirmed: 'Legume inoculation confirmed',
   latitude: 'Latitude',
   longitude: 'Longitude',
 };
@@ -57,7 +60,7 @@ export function buildFarmEvidence(farm, crops, locationDetailsVisible) {
       state = 'missing';
       origin = 'Farmer confirmation';
       note = 'Climate data cannot establish water access at this farm.';
-    } else if (field.endsWith('_available')) {
+    } else if (field.endsWith('_available') || field === 'inoculation_confirmed') {
       origin = 'Farmer confirmation';
     }
 
