@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 import requests
+from datascience.power_parameters import PARAMETERS
 
 ENDPOINT = "https://power.larc.nasa.gov/api/temporal/daily/point"
-PARAMETERS = ("T2M", "T2M_MIN", "T2M_MAX", "PRECTOTCORR", "RH2M", "WS2M", "ALLSKY_SFC_SW_DWN", "PS")
 OUTPUT_COLUMNS = ["date", "latitude", "longitude", "temperature_avg_c", "temperature_min_c", "temperature_max_c", "precipitation_mm_day", "relative_humidity_pct", "wind_speed_m_s", "solar_radiation_kwh_m2_day", "surface_pressure_kpa"]
 PARAMETER_COLUMNS = {"T2M":"temperature_avg_c", "T2M_MIN":"temperature_min_c", "T2M_MAX":"temperature_max_c", "PRECTOTCORR":"precipitation_mm_day", "RH2M":"relative_humidity_pct", "WS2M":"wind_speed_m_s", "ALLSKY_SFC_SW_DWN":"solar_radiation_kwh_m2_day", "PS":"surface_pressure_kpa"}
 UNITS = {"T2M":"C", "T2M_MIN":"C", "T2M_MAX":"C", "PRECTOTCORR":"mm/day", "RH2M":"%", "WS2M":"m/s", "ALLSKY_SFC_SW_DWN":"kW-hr/m^2/day", "PS":"kPa"}

@@ -95,3 +95,14 @@ $venvPython = ".venv\Scripts\python.exe"
 ```bash
 PYTHONPATH=backend .venv/bin/python -m pytest backend/tests -q
 ```
+## Crop date window and reference limits
+
+`POST /api/rotations/compare` uses `planting_date` and each candidate crop's
+maximum catalog duration to sum historical NASA POWER daily precipitation.
+This produces a sourced-duration estimate, not a farmer-entered harvest date,
+rainfall forecast, or crop-specific rainfall pass threshold.
+
+`GET /api/crops` includes sourced crop envelopes and coefficient records. Rice
+and soybean coefficients are general references. Mung bean values come from a
+single MI-6 trial season in Sri Lanka and are displayed as indicative context,
+excluded from PASS/FAIL decisions. The UI shows scope, caveats, and source links.

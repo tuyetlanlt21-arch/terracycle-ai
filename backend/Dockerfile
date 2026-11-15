@@ -2,7 +2,7 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app/backend
+    PYTHONPATH=/app/backend:/app
 
 WORKDIR /app
 
@@ -12,6 +12,7 @@ RUN python -m pip install --no-cache-dir --disable-pip-version-check -r /app/bac
 RUN useradd --system --create-home --uid 10001 app
 
 COPY --chown=10001:10001 backend/app /app/backend/app
+COPY --chown=10001:10001 datascience/__init__.py datascience/evapotranspiration.py datascience/power.py datascience/power_parameters.py datascience/soilgrids.py /app/datascience/
 COPY --chown=10001:10001 data/reference /app/data/reference
 COPY --chown=10001:10001 data/processed/power /app/data/processed/power
 COPY --chown=10001:10001 data/processed/soil /app/data/processed/soil

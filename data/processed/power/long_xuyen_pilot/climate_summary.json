@@ -1,0 +1,64 @@
+{
+  "location": {
+    "latitude": 10.383333,
+    "longitude": 105.45
+  },
+  "period": {
+    "start": "20200101",
+    "end": "20261031"
+  },
+  "parameters": [
+    "T2M",
+    "T2M_MIN",
+    "T2M_MAX",
+    "PRECTOTCORR",
+    "RH2M",
+    "WS2M",
+    "ALLSKY_SFC_SW_DWN",
+    "PS"
+  ],
+  "source": "NASA POWER",
+  "source_url": "https://power.larc.nasa.gov/api/temporal/daily/point?latitude=10.383333&longitude=105.45&start=20200101&end=20261031&community=AG&parameters=T2M%2CT2M_MIN%2CT2M_MAX%2CPRECTOTCORR%2CRH2M%2CWS2M%2CALLSKY_SFC_SW_DWN%2CPS&format=JSON",
+  "retrieval_date": "2026-11-15",
+  "quality": {
+    "record_count": 2496,
+    "duplicate_dates": 0,
+    "missing_dates": [],
+    "missing_count": 0,
+    "missing_by_column": {
+      "date": 0,
+      "latitude": 0,
+      "longitude": 0,
+      "temperature_avg_c": 0,
+      "temperature_min_c": 0,
+      "temperature_max_c": 0,
+      "precipitation_mm_day": 0,
+      "relative_humidity_pct": 0,
+      "wind_speed_m_s": 0,
+      "solar_radiation_kwh_m2_day": 0,
+      "surface_pressure_kpa": 0
+    },
+    "units": {
+      "T2M": "C",
+      "T2M_MIN": "C",
+      "T2M_MAX": "C",
+      "PRECTOTCORR": "mm/day",
+      "RH2M": "%",
+      "WS2M": "m/s",
+      "ALLSKY_SFC_SW_DWN": "kW-hr/m^2/day",
+      "PS": "kPa"
+    },
+    "coverage": {
+      "valid": true,
+      "start": "2020-01-01",
+      "end": "2026-10-31",
+      "expected_record_count": 2496,
+      "record_count": 2496,
+      "duplicate_dates": 0,
+      "missing_dates": [],
+      "leap_days_present": true
+    }
+  },
+  "availability": "available",
+  "warnings": []
+}

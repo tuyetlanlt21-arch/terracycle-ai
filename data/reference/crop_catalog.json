@@ -1,11 +1,282 @@
 {
   "schema_version": "1.0.0",
   "status": "verified_reference_values_with_explicit_gaps",
-  "pilot_context": {"name": "Long Xuyen pilot point", "latitude": 10.383333, "longitude": 105.45, "scope_note": "One pilot point only; not representative of all An Giang."},
+  "pilot_context": {
+    "name": "Long Xuyen pilot point",
+    "latitude": 10.383333,
+    "longitude": 105.45,
+    "scope_note": "One pilot point only; not representative of all An Giang."
+  },
   "records": [
-    {"crop_id":"rice","crop_name":"Rice (Oryza sativa)","temperature":{"optimal":{"min_c":20,"max_c":30},"absolute":{"min_c":10,"max_c":36},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574","source_field":"Temperat. requir."},"rainfall":{"optimal":{"min_mm_year":1500,"max_mm_year":2000},"absolute":{"min_mm_year":1000,"max_mm_year":4000},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574","source_field":"Rainfall (annual)"},"soil_ph":{"optimal":{"min":5.5,"max":7.0},"absolute":{"min":4.5,"max":9.0},"unit":"pH","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574"},"growth_duration":{"min_days":80,"max_days":180,"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574","source_field":"Crop cycle"},"water_requirement":{"min_mm_season":450,"max_mm_season":700,"drought_sensitivity":"high","special_note":"Paddy rice also requires saturation, percolation/seepage and a water layer; seasonal crop-water range is not irrigation demand.","source_url":"https://www.fao.org/4/s2022e/s2022e07.htm"},"soil_characteristics":{"texture_optimal":"wide","drainage_optimal":"poorly drained / wet-rice system","fertility_optimal":"high","salinity_optimal":"low (<4 dS/m)","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574"},"source_references":["https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574","https://www.fao.org/4/s2022e/s2022e07.htm"]},
-    {"crop_id":"maize","crop_name":"Maize (Zea mays)","temperature":{"optimal":{"min_c":18,"max_c":33},"absolute":{"min_c":10,"max_c":47},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175","source_field":"Temperat. requir."},"rainfall":{"optimal":{"min_mm_year":600,"max_mm_year":1200},"absolute":{"min_mm_year":400,"max_mm_year":1800},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175","source_field":"Rainfall (annual)"},"soil_ph":{"optimal":{"min":5.0,"max":7.0},"absolute":{"min":4.5,"max":8.5},"unit":"pH","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175"},"growth_duration":{"min_days":65,"max_days":365,"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175","source_field":"Crop cycle"},"water_requirement":{"min_mm_season":500,"max_mm_season":800,"drought_sensitivity":"medium-high","source_url":"https://www.fao.org/4/s2022e/s2022e07.htm"},"soil_characteristics":{"soil_depth_optimal":"medium (50-150 cm)","fertility_optimal":"high","salinity_optimal":"low (<4 dS/m)","nitrogen_note":"ECOCROP describes high nitrogen requirement and nutrient drain; no numeric fertilizer recommendation is inferred.","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175"},"source_references":["https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175","https://www.fao.org/4/s2022e/s2022e07.htm"]},
-    {"crop_id":"mung_bean","crop_name":"Mung bean (Vigna radiata)","temperature":{"optimal":{"min_c":21,"max_c":36},"absolute":{"min_c":8,"max_c":40},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150","source_field":"Temperat. requir."},"rainfall":{"optimal":{"min_mm_year":650,"max_mm_year":900},"absolute":{"min_mm_year":500,"max_mm_year":1250},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150","source_field":"Rainfall (annual)"},"soil_ph":{"optimal":{"min":5.5,"max":6.2},"absolute":{"min":4.3,"max":8.3},"unit":"pH","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150"},"growth_duration":{"min_days":50,"max_days":120,"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150","source_field":"Crop cycle"},"water_requirement":{"min_mm_season":null,"max_mm_season":null,"drought_sensitivity":"unknown","note":"No crop-specific seasonal water requirement was verified; generic bean values are not substituted.","source_url":null},"soil_characteristics":{"texture_optimal":"medium, organic","drainage_optimal":"well drained","fertility_optimal":"moderate","salinity_optimal":"low (<4 dS/m)","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150"},"legume":{"is_legume":true,"nitrogen_fixation":"biological nitrogen fixation is possible with effective rhizobia; field benefit is not guaranteed","source_url":"https://extension.umn.edu/agriculture/crop-production/forages/legume-life-cycles-and-characteristics"},"source_references":["https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150","https://extension.umn.edu/agriculture/crop-production/forages/legume-life-cycles-and-characteristics"]},
-    {"crop_id":"soybean","crop_name":"Soybean (Glycine max)","temperature":{"optimal":{"min_c":20,"max_c":33},"absolute":{"min_c":10,"max_c":38},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150","source_field":"Temperat. requir."},"rainfall":{"optimal":{"min_mm_year":600,"max_mm_year":1500},"absolute":{"min_mm_year":450,"max_mm_year":1800},"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150","source_field":"Rainfall (annual)"},"soil_ph":{"optimal":{"min":5.5,"max":6.5},"absolute":{"min":4.5,"max":8.4},"unit":"pH","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150"},"growth_duration":{"min_days":75,"max_days":180,"source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150","source_field":"Crop cycle / growing period"},"water_requirement":{"min_mm_season":450,"max_mm_season":700,"drought_sensitivity":"low-medium","source_url":"https://www.fao.org/4/s2022e/s2022e07.htm"},"soil_characteristics":{"texture_optimal":"medium, organic","drainage_optimal":"well drained","fertility_optimal":"high","salinity_optimal":"low (<4 dS/m)","source_url":"https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150"},"legume":{"is_legume":true,"nitrogen_fixation":"requires effective Bradyrhizobium japonicum inoculation/establishment; benefit is conditional","source_url":"https://extension.umn.edu/agriculture/crop-production/nutrient-management-for-minnesota-crops/soybean-fertilizer-guidelines"},"source_references":["https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150","https://extension.umn.edu/agriculture/crop-production/nutrient-management-for-minnesota-crops/soybean-fertilizer-guidelines","https://www.fao.org/4/s2022e/s2022e07.htm"]}
+    {
+      "crop_id": "rice",
+      "crop_name": "Rice (Oryza sativa)",
+      "temperature": {
+        "optimal": {
+          "min_c": 20,
+          "max_c": 30
+        },
+        "absolute": {
+          "min_c": 10,
+          "max_c": 36
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574",
+        "source_field": "Temperat. requir."
+      },
+      "rainfall": {
+        "optimal": {
+          "min_mm_year": 1500,
+          "max_mm_year": 2000
+        },
+        "absolute": {
+          "min_mm_year": 1000,
+          "max_mm_year": 4000
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574",
+        "source_field": "Rainfall (annual)"
+      },
+      "soil_ph": {
+        "optimal": {
+          "min": 5.5,
+          "max": 7.0
+        },
+        "absolute": {
+          "min": 4.5,
+          "max": 9.0
+        },
+        "unit": "pH",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574"
+      },
+      "growth_duration": {
+        "min_days": 80,
+        "max_days": 180,
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574",
+        "source_field": "Crop cycle"
+      },
+      "water_requirement": {
+        "min_mm_season": 450,
+        "max_mm_season": 700,
+        "drought_sensitivity": "high",
+        "special_note": "Paddy rice also requires saturation, percolation/seepage and a water layer; seasonal crop-water range is not irrigation demand.",
+        "source_url": "https://www.fao.org/4/s2022e/s2022e07.htm"
+      },
+      "soil_characteristics": {
+        "texture_optimal": "wide",
+        "drainage_optimal": "poorly drained / wet-rice system",
+        "fertility_optimal": "high",
+        "salinity_optimal": "low (<4 dS/m)",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574"
+      },
+      "source_references": [
+        "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1574",
+        "https://www.fao.org/4/s2022e/s2022e07.htm"
+      ]
+    },
+    {
+      "crop_id": "maize",
+      "crop_name": "Maize (Zea mays)",
+      "temperature": {
+        "optimal": {
+          "min_c": 18,
+          "max_c": 33
+        },
+        "absolute": {
+          "min_c": 10,
+          "max_c": 47
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175",
+        "source_field": "Temperat. requir."
+      },
+      "rainfall": {
+        "optimal": {
+          "min_mm_year": 600,
+          "max_mm_year": 1200
+        },
+        "absolute": {
+          "min_mm_year": 400,
+          "max_mm_year": 1800
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175",
+        "source_field": "Rainfall (annual)"
+      },
+      "soil_ph": {
+        "optimal": {
+          "min": 5.0,
+          "max": 7.0
+        },
+        "absolute": {
+          "min": 4.5,
+          "max": 8.5
+        },
+        "unit": "pH",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175"
+      },
+      "growth_duration": {
+        "min_days": 65,
+        "max_days": 365,
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175",
+        "source_field": "Crop cycle"
+      },
+      "water_requirement": {
+        "min_mm_season": 500,
+        "max_mm_season": 800,
+        "drought_sensitivity": "medium-high",
+        "source_url": "https://www.fao.org/4/s2022e/s2022e07.htm"
+      },
+      "soil_characteristics": {
+        "soil_depth_optimal": "medium (50-150 cm)",
+        "fertility_optimal": "high",
+        "salinity_optimal": "low (<4 dS/m)",
+        "nitrogen_note": "ECOCROP describes high nitrogen requirement and nutrient drain; no numeric fertilizer recommendation is inferred.",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175"
+      },
+      "source_references": [
+        "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2175",
+        "https://www.fao.org/4/s2022e/s2022e07.htm"
+      ]
+    },
+    {
+      "crop_id": "mung_bean",
+      "crop_name": "Mung bean (Vigna radiata)",
+      "temperature": {
+        "optimal": {
+          "min_c": 21,
+          "max_c": 36
+        },
+        "absolute": {
+          "min_c": 8,
+          "max_c": 40
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150",
+        "source_field": "Temperat. requir."
+      },
+      "rainfall": {
+        "optimal": {
+          "min_mm_year": 650,
+          "max_mm_year": 900
+        },
+        "absolute": {
+          "min_mm_year": 500,
+          "max_mm_year": 1250
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150",
+        "source_field": "Rainfall (annual)"
+      },
+      "soil_ph": {
+        "optimal": {
+          "min": 5.5,
+          "max": 6.2
+        },
+        "absolute": {
+          "min": 4.3,
+          "max": 8.3
+        },
+        "unit": "pH",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150"
+      },
+      "growth_duration": {
+        "min_days": 50,
+        "max_days": 120,
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150",
+        "source_field": "Crop cycle"
+      },
+      "water_requirement": {
+        "min_mm_season": null,
+        "max_mm_season": null,
+        "drought_sensitivity": "unknown",
+        "note": "No crop-specific seasonal water requirement was verified; generic bean values are not substituted.",
+        "source_url": null
+      },
+      "soil_characteristics": {
+        "texture_optimal": "medium, organic",
+        "drainage_optimal": "well drained",
+        "fertility_optimal": "moderate",
+        "salinity_optimal": "low (<4 dS/m)",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150"
+      },
+      "legume": {
+        "is_legume": true,
+        "nitrogen_fixation": "biological nitrogen fixation is possible with effective rhizobia; field benefit is not guaranteed",
+        "source_url": "https://extension.umn.edu/agriculture/crop-production/forages/legume-life-cycles-and-characteristics"
+      },
+      "source_references": [
+        "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=2150",
+        "https://extension.umn.edu/agriculture/crop-production/forages/legume-life-cycles-and-characteristics"
+      ],
+      "rainfall_response": {
+        "summary": "Usually rainfed and often follows rice; excessive rainfall and humidity, especially at flowering, can reduce yield.",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/cropView?id=2150",
+        "evidence_grade": "FAO crop reference; qualitative, not a numeric seasonal rainfall threshold"
+      }
+    },
+    {
+      "crop_id": "soybean",
+      "crop_name": "Soybean (Glycine max)",
+      "temperature": {
+        "optimal": {
+          "min_c": 20,
+          "max_c": 33
+        },
+        "absolute": {
+          "min_c": 10,
+          "max_c": 38
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150",
+        "source_field": "Temperat. requir."
+      },
+      "rainfall": {
+        "optimal": {
+          "min_mm_year": 600,
+          "max_mm_year": 1500
+        },
+        "absolute": {
+          "min_mm_year": 450,
+          "max_mm_year": 1800
+        },
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150",
+        "source_field": "Rainfall (annual)"
+      },
+      "soil_ph": {
+        "optimal": {
+          "min": 5.5,
+          "max": 6.5
+        },
+        "absolute": {
+          "min": 4.5,
+          "max": 8.4
+        },
+        "unit": "pH",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150"
+      },
+      "growth_duration": {
+        "min_days": 75,
+        "max_days": 180,
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150",
+        "source_field": "Crop cycle / growing period"
+      },
+      "water_requirement": {
+        "min_mm_season": 450,
+        "max_mm_season": 700,
+        "drought_sensitivity": "low-medium",
+        "source_url": "https://www.fao.org/4/s2022e/s2022e07.htm"
+      },
+      "soil_characteristics": {
+        "texture_optimal": "medium, organic",
+        "drainage_optimal": "well drained",
+        "fertility_optimal": "high",
+        "salinity_optimal": "low (<4 dS/m)",
+        "source_url": "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150"
+      },
+      "legume": {
+        "is_legume": true,
+        "nitrogen_fixation": "requires effective Bradyrhizobium japonicum inoculation/establishment; benefit is conditional",
+        "source_url": "https://extension.umn.edu/agriculture/crop-production/nutrient-management-for-minnesota-crops/soybean-fertilizer-guidelines"
+      },
+      "source_references": [
+        "https://ecocrop.apps.fao.org/ecocrop/srv/en/dataSheet?id=1150",
+        "https://extension.umn.edu/agriculture/crop-production/nutrient-management-for-minnesota-crops/soybean-fertilizer-guidelines",
+        "https://www.fao.org/4/s2022e/s2022e07.htm"
+      ]
+    }
   ]
 }

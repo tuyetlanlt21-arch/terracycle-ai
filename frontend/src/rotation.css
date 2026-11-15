@@ -8,6 +8,7 @@
 .farm-description{color:#a7b7c9;line-height:1.65;max-width:49ch;margin-bottom:27px}
 .farm-profile .scenario{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 14px}
 .farm-profile label{display:grid;gap:6px;min-width:0;color:#cfdeea;font-size:.78rem}
+.farm-profile .scenario>label{align-self:start;align-content:start}
 .farm-profile input,.farm-profile select{min-width:0;width:100%;border:1px solid #a8dae22e;border-radius:15px;background:#d0e9fc0c;color:#f1f7fa;padding:11px 12px;min-height:45px}
 .farm-profile select option{background:#111c28;color:#f1f7fa}
 .farm-profile input:focus,.farm-profile select:focus{outline:2px solid #58ddbe;outline-offset:2px}
@@ -57,7 +58,10 @@ body{background:radial-gradient(ellipse at 85% 25%,#1b1741 0,transparent 42%),ra
 
 .farm-globe figcaption a{pointer-events:auto;color:#b9e9eb;text-underline-offset:3px}
 
+.evidence{padding:clamp(28px,5vw,64px);overflow-wrap:anywhere}.evidence h3{margin:32px 0 8px;color:#eeefff}.evidence h4{margin:0 0 8px}.evidence-line{display:flex;flex-wrap:wrap;gap:9px;margin:20px 0}.evidence-line span{border:1px solid var(--orbit-line);border-radius:999px;padding:8px 12px;font-size:.78rem}.live-source a,.source-card a,.recommendation-sources a{color:#a9f4eb;text-underline-offset:3px}.field-evidence-grid,.source-catalog{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px;margin-top:18px}.field-evidence,.source-card{min-width:0;border:1px solid var(--orbit-line);border-radius:14px;background:#11152a;padding:16px}.field-evidence-heading{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.field-evidence-value{font-size:1.1rem;color:#f1f3ff!important;margin:12px 0 5px}.field-evidence small{display:block;color:var(--orbit-muted);font-size:.76rem;line-height:1.5;margin-top:5px}.evidence-state{border-radius:999px;padding:4px 8px;font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;background:#42314b;color:#ffe3af;white-space:nowrap}.evidence-provided{background:#163b36;color:#acf4d0}.evidence-sourced{background:#202f49;color:#c4d8ff}.evidence-optional{background:#282a3e;color:#ccd0e5}.source-card p,.source-card li{font-size:.82rem;line-height:1.55}.source-card ul,.recommendation-sources ul{padding-left:20px}.recommendation-sources{margin-top:12px;font-size:.82rem}.recommendation-sources li{margin-top:5px}.evidence-boundary{margin-top:24px;padding:14px;border:1px solid var(--orbit-line);border-radius:12px}
+
 .farm-globe.farm-globe-expanded{position:fixed;inset:0;z-index:2000;width:100%;height:100dvh;min-height:0;max-width:none;aspect-ratio:auto;margin:0;border:0;border-radius:0;overflow:hidden;background:#050811}
+.mission-visual:has(.farm-globe-expanded){z-index:2001}
 .farm-globe-expanded canvas{position:absolute;inset:0;width:100%;height:100%;cursor:default}
 .farm-globe-expanded .telemetry,.farm-globe-expanded figcaption{display:none}
 .globe-location-controls{position:absolute;z-index:4;top:1rem;left:1rem;right:1rem;display:grid;justify-items:start;gap:.35rem;color:#e1fff9;pointer-events:none;text-shadow:0 1px 5px #050811}
@@ -68,3 +72,4 @@ body{background:radial-gradient(ellipse at 85% 25%,#1b1741 0,transparent 42%),ra
 .farm-profile:has(.farm-globe-expanded),.mission-grid:has(.farm-globe-expanded){isolation:auto}
 .globe-coordinates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;text-align:left}.globe-coordinates label{font-size:10px;color:#cfe0d8}.globe-coordinates input{padding:7px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff}.farm-globe canvas{cursor:crosshair}
 .globe-provenance{display:grid;gap:5px;margin-top:12px;max-width:300px;color:#d9eee9;font-size:.7rem;line-height:1.35;text-align:left}.globe-provenance span{color:#a9c7c0}
+.crop-reference-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px;margin-top:18px}.crop-reference-card{min-width:0;border:1px solid var(--orbit-line);border-radius:14px;background:#11152a;padding:18px}.crop-reference-card p{font-size:.82rem;line-height:1.55;color:var(--orbit-muted)}.crop-reference-card a{color:#a9f4eb;text-underline-offset:3px}
