@@ -64,6 +64,12 @@ def climate_summary(latitude: float = Query(..., ge=-90, le=90), longitude: floa
 def crops():
     catalog=_read_reference_json(ROOT/"data/reference/crop_catalog.json")
     validate_crop_catalog(catalog)
+    coefficients_path=ROOT/"data/reference/crop_coefficients.json"
+    if coefficients_path.exists():
+        coefficients=_read_reference_json(coefficients_path).get("records",{})
+        if isinstance(coefficients,dict):
+            for record in catalog.get("records",[]):
+                record["fa056_crop_coefficient"]=coefficients.get(record.get("crop_id"))
     return catalog
 @app.get("/api/soil/profile")
 def soil_profile():

@@ -16,7 +16,7 @@ export function Landing() {
         <p>Explore crop rotations for a pilot farm in Long Xuyên, An Giang, using historical climate and local growing conditions.</p>
         <a className="mission-cta" href="#farm-profile-title">Open Farm Profile <ArrowUpRight size={17}/></a>
       </header>
-      <FarmGlobe priority="yield" crop=""/>
+      <FarmGlobe priority="yield" crop="" showLocationControls={false}/>
     </div>
     <div className="landing-overview">
       <section><h2>Context</h2><p>Farmers weighing a crop change need to know whether the next crop fits the planting window, available water and soil conditions. Missing measurements make that choice harder.</p></section>

@@ -1,7 +1,7 @@
 const labels = {
   current_crop: 'Current crop',
   farm_area_ha: 'Farm area',
-  planting_date: 'Planting date',
+  planting_date: 'Planned planting date',
   planning_month: 'Planning month',
   farmer_priority: 'Farmer priority',
   soil_ph: 'Soil pH',
@@ -9,16 +9,13 @@ const labels = {
   irrigation_water_ec: 'Irrigation-water EC',
   irrigation_available: 'Irrigation available',
   freshwater_availability: 'Freshwater availability',
-  drainage_available: 'Drainage available',
-  water_control_available: 'Water control available',
-  inoculation_confirmed: 'Legume inoculation confirmed',
   latitude: 'Latitude',
   longitude: 'Longitude',
 };
 
 const cropSource = new Set(['current_crop']);
 const fieldMeasurements = new Set(['soil_ph', 'soil_salinity_ec', 'irrigation_water_ec']);
-const optional = new Set(['planning_month', 'inoculation_confirmed']);
+const optional = new Set(['planning_month']);
 
 function display(value) {
   if (value === null || value === undefined || value === '') return null;
@@ -53,14 +50,14 @@ export function buildFarmEvidence(farm, crops, locationDetailsVisible) {
       note = 'NASA POWER point data are gridded climate context, not field measurements.';
     } else if (field === 'planning_month') {
       note = 'Optional planning context; the current comparison uses the exact planting date.';
-    } else if (field === 'inoculation_confirmed' && value === null) {
-      note = 'Needed only when assessing soybean; otherwise optional.';
+    } else if (field === 'planting_date') {
+      note = 'Each candidate crop uses its sourced maximum duration to define the historical climate window.';
     } else if (field === 'freshwater_availability' && farm.freshwater_availability === 'unknown') {
       value = 'Unknown';
       state = 'missing';
       origin = 'Farmer confirmation';
       note = 'Climate data cannot establish water access at this farm.';
-    } else if (field.endsWith('_available') || field === 'water_control_available') {
+    } else if (field.endsWith('_available')) {
       origin = 'Farmer confirmation';
     }
 

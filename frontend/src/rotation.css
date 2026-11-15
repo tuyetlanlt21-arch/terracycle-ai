@@ -8,6 +8,7 @@
 .farm-description{color:#a7b7c9;line-height:1.65;max-width:49ch;margin-bottom:27px}
 .farm-profile .scenario{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:0 0 14px}
 .farm-profile label{display:grid;gap:6px;min-width:0;color:#cfdeea;font-size:.78rem}
+.farm-profile .scenario>label{align-self:start;align-content:start}
 .farm-profile input,.farm-profile select{min-width:0;width:100%;border:1px solid #a8dae22e;border-radius:15px;background:#d0e9fc0c;color:#f1f7fa;padding:11px 12px;min-height:45px}
 .farm-profile select option{background:#111c28;color:#f1f7fa}
 .farm-profile input:focus,.farm-profile select:focus{outline:2px solid #58ddbe;outline-offset:2px}
@@ -71,3 +72,4 @@ body{background:radial-gradient(ellipse at 85% 25%,#1b1741 0,transparent 42%),ra
 .farm-profile:has(.farm-globe-expanded),.mission-grid:has(.farm-globe-expanded){isolation:auto}
 .globe-coordinates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;text-align:left}.globe-coordinates label{font-size:10px;color:#cfe0d8}.globe-coordinates input{padding:7px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);color:#fff}.farm-globe canvas{cursor:crosshair}
 .globe-provenance{display:grid;gap:5px;margin-top:12px;max-width:300px;color:#d9eee9;font-size:.7rem;line-height:1.35;text-align:left}.globe-provenance span{color:#a9c7c0}
+.crop-reference-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px;margin-top:18px}.crop-reference-card{min-width:0;border:1px solid var(--orbit-line);border-radius:14px;background:#11152a;padding:18px}.crop-reference-card p{font-size:.82rem;line-height:1.55;color:var(--orbit-muted)}.crop-reference-card a{color:#a9f4eb;text-underline-offset:3px}

@@ -107,6 +107,44 @@ def test_fixture_coordinates_are_used_for_location_specific_evaluation():
     result=compare_rotation(RotationScenario(farm=farm(planting_date="2024-11-01"),strategy="current_practice",candidate_crop_ids=["rice"]))
     assert result.provenance.evaluated_location == {"latitude":10.8403,"longitude":106.8333}
 
+def test_bundled_long_xuyen_evidence_can_assess_pass_and_fail(monkeypatch):
+    import app.services.location_data as location_data
+    monkeypatch.setattr(location_data,"_find_cached_climate_artifact",lambda *args: None)
+    monkeypatch.setenv("LOCATION_DATA_FETCH_ENABLED","0")
+    located=location_data.load_location(decision.ROOT,10.383333,105.45)
+    assert located.availability["climate"]=="available"
+    assert located.daily_path is not None and located.daily_path.is_file()
+
+    def scenario(salinity):
+        profile=farm(
+            planting_date="2024-11-01", latitude=10.383333, longitude=105.45,
+            soil_ph=6.0, soil_salinity_ec=salinity, irrigation_water_ec=0.5,
+            irrigation_available=True, freshwater_availability="adequate",
+            drainage_available=True, water_control_available=True,
+        )
+        return RotationScenario(farm=profile,strategy="current_practice",candidate_crop_ids=["rice"])
+
+    eligible=compare_rotation(scenario(1.0),location_data=located)
+    assert eligible.recommendations[0].eligibility=="PASS"
+    assert eligible.recommendations[0].final_decision=="PASS"
+
+    incomplete=scenario(1.0)
+    incomplete.farm.drainage_available=None
+    pending=compare_rotation(incomplete,location_data=located)
+    assert pending.recommendations[0].eligibility=="UNKNOWN"
+    assert pending.recommendations[0].final_decision is None
+
+    rejected=compare_rotation(scenario(4.0),location_data=located)
+    assert rejected.rejected_alternatives[0].eligibility=="FAIL"
+    assert any("salinity" in reason.lower() for reason in rejected.rejected_alternatives[0].reasons)
+
+def test_fao_irrigation_water_quality_bands_are_not_all_pass():
+    rice=decision._load()[0]["rice"]
+    cases=[(0.69,"PASS"),(0.7,"UNKNOWN"),(3.0,"UNKNOWN"),(3.01,"FAIL")]
+    for ec,expected in cases:
+        status,_reason=decision._water_status(rice,farm(irrigation_water_ec=ec))
+        assert status==expected
+
 def test_window_rejects_duplicate_dates_that_mask_missing_coverage(tmp_path, monkeypatch):
     dataset=tmp_path/"daily.csv"
     dataset.write_text("date,temperature_avg_c,precipitation_mm_day\n2024-01-01,20,1\n2024-01-01,21,2\n",encoding="utf-8")

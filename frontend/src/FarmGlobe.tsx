@@ -13,7 +13,7 @@ const radians = Math.PI / 180;
 type LandPoint = { lat: number; lon: number; brightness: number };
 type Particle = { angle: number; radius: number; phase: number; size: number; color: number };
 
-export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['farmer_priority']; crop: string; provenance?: Provenance}) {
+export function FarmGlobe({priority, crop, provenance, showLocationControls=true}: {priority: FarmProfile['farmer_priority']; crop: string; provenance?: Provenance; showLocationControls?: boolean}) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const target = useRef(palette[priority]);
   const drag = useRef<{x: number; id: number} | null>(null);
@@ -210,13 +210,13 @@ export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['
       if (location && event.key === 'Escape') exitLocation();
       if (location && event.key === 'Tab') { event.preventDefault(); close.current?.focus(); }
     }} aria-label={location ? "Long Xuyen pilot location on Earth" : "Interactive globe highlighting Vietnam"}>
-    <canvas ref={canvas} tabIndex={location ? -1 : 0} aria-label="Rotate the globe with the arrow keys" onDoubleClick={event=>{const box=event.currentTarget.getBoundingClientRect();const camera=view.current;const x=(event.clientX-box.left-camera.cx)/camera.radius;const y=-(event.clientY-box.top-camera.cy)/camera.radius;const rho2=x*x+y*y;if(rho2>1)return;const z=Math.sqrt(Math.max(0,1-rho2));const sinC=Math.sin(camera.centerLat),cosC=Math.cos(camera.centerLat);const sinLat=cosC*y+sinC*z;const q=-sinC*y+cosC*z;const delta=Math.atan2(x,q);const latitude=Math.asin(Math.max(-1,Math.min(1,sinLat)))/radians;const longitude=((camera.rotation+delta)/radians+540)%360-180;window.dispatchEvent(new CustomEvent('terracycle-location',{detail:{latitude:Number(latitude.toFixed(6)),longitude:Number(longitude.toFixed(6))}}));}} onKeyDown={event=>{
+    <canvas ref={canvas} tabIndex={location ? -1 : 0} aria-label="Rotate the globe with the arrow keys" onDoubleClick={event=>{if(!showLocationControls)return;const box=event.currentTarget.getBoundingClientRect();const camera=view.current;const x=(event.clientX-box.left-camera.cx)/camera.radius;const y=-(event.clientY-box.top-camera.cy)/camera.radius;const rho2=x*x+y*y;if(rho2>1)return;const z=Math.sqrt(Math.max(0,1-rho2));const sinC=Math.sin(camera.centerLat),cosC=Math.cos(camera.centerLat);const sinLat=cosC*y+sinC*z;const q=-sinC*y+cosC*z;const delta=Math.atan2(x,q);const latitude=Math.asin(Math.max(-1,Math.min(1,sinLat)))/radians;const longitude=((camera.rotation+delta)/radians+540)%360-180;window.dispatchEvent(new CustomEvent('terracycle-location',{detail:{latitude:Number(latitude.toFixed(6)),longitude:Number(longitude.toFixed(6))}}));}} onKeyDown={event=>{
       if(!location && (event.key==='ArrowLeft'||event.key==='ArrowRight')){event.preventDefault();yaw.current+=event.key==='ArrowLeft'?-.18:.18;}
     }} onPointerDown={event=>{if(location) return;drag.current={x:event.clientX,id:event.pointerId};event.currentTarget.setPointerCapture(event.pointerId);}}
     onPointerMove={event=>{if(drag.current?.id===event.pointerId){yaw.current+=(event.clientX-drag.current.x)*.012;drag.current.x=event.clientX;}}}
     onPointerCancel={()=>{drag.current=null;}}
     onLostPointerCapture={()=>{drag.current=null;}}/>
-    <div className="globe-location-controls">
+    {showLocationControls&&<div className="globe-location-controls">
       {location ? <button ref={close} type="button" onClick={exitLocation}>Close map ×</button> :
         <button ref={locator} type="button" onClick={selectPilotLocation}
           title="For this demo, selects the Long Xuyen pilot coordinates.">◎ Use your location</button>}
@@ -224,7 +224,7 @@ export function FarmGlobe({priority, crop, provenance}: {priority: FarmProfile['
       <div role="status">{status}</div>
       {liveProvenance && <div className="globe-provenance"><b>Evaluated location</b><span>{liveProvenance.evaluated_location ? `${liveProvenance.evaluated_location.latitude}, ${liveProvenance.evaluated_location.longitude}` : 'not provided'}</span><span>NASA: {liveProvenance.availability?.climate || 'unknown'} · SoilGrids: {liveProvenance.availability?.soil || liveProvenance.soil_status || 'unknown'}</span><span>Period: {liveProvenance.climate_period || 'unknown'} · Rules: {liveProvenance.rule_set || 'unknown'}</span><span>Scope: {liveProvenance.supported_scope || 'unknown'}</span>{liveProvenance.applicability_reason && <span>{liveProvenance.applicability_reason}</span>}{(liveProvenance.warnings || []).map(warning => <span key={warning}>{warning}</span>)}</div>}
       {!location && <div className="globe-coordinates"><label>Latitude <input type="number" min="-90" max="90" step="0.000001" placeholder="Latitude" value={coordinateDraft.latitude??''} onChange={event=>{const latitude=event.target.value===''?undefined:Number(event.target.value);const next={...coordinateDraft,latitude};setCoordinateDraft(next);window.dispatchEvent(new CustomEvent('terracycle-location',{detail:next}))}}/></label><label>Longitude <input type="number" min="-180" max="180" step="0.000001" placeholder="Longitude" value={coordinateDraft.longitude??''} onChange={event=>{const longitude=event.target.value===''?undefined:Number(event.target.value);const next={...coordinateDraft,longitude};setCoordinateDraft(next);window.dispatchEvent(new CustomEvent('terracycle-location',{detail:next}))}}/></label></div>}
-    </div>
+    </div>}
     <span className="telemetry telemetry-smap">SMAP Moisture</span>
     <span className="telemetry telemetry-eco">ECOSTRESS LST</span>
     <span className="telemetry telemetry-gpm">GPM Precipitation</span>

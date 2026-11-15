@@ -67,6 +67,14 @@ def _find_cached_climate_artifact(root: Path, latitude: float, longitude: float,
     _, path, climate = max(candidates, key=lambda candidate: candidate[0])
     return path, climate
 
+def _find_bundled_pilot_artifact(root: Path, latitude: float, longitude: float, start: str) -> tuple[Path, dict[str, Any]] | None:
+    """Use the checked-in authentic NASA export only at its documented pilot point."""
+    path = root / "data/processed/power/long_xuyen_pilot"
+    climate = _read(path / "climate_summary.json")
+    if not _valid_climate_artifact(climate, latitude, longitude, start): return None
+    if not (path / "nasa_power_daily.csv").is_file(): return None
+    return path, climate
+
 def load_location(root: Path, latitude: float, longitude: float) -> LocationData:
     power = root / "data/processed/power"
     soil_path = root / "data/processed/soil/soilgrids_profile.json"
@@ -75,7 +83,8 @@ def load_location(root: Path, latitude: float, longitude: float) -> LocationData
     cache_identity = json.dumps({"latitude": round(latitude, 6), "longitude": round(longitude, 6), "start": start, "parameters": PARAMETERS, "dataset_version": "nasa-power-daily-v2"}, sort_keys=True)
     location_dir = root / "data/processed/location_cache" / hashlib.sha256(cache_identity.encode()).hexdigest()[:24]
     cached_artifact = _find_cached_climate_artifact(root, latitude, longitude, start)
-    cached_dir = cached_artifact[0] if cached_artifact else None
+    bundled_artifact = None if cached_artifact else _find_bundled_pilot_artifact(root, latitude, longitude, start)
+    cached_dir = cached_artifact[0] if cached_artifact else bundled_artifact[0] if bundled_artifact else None
     scoped_power = location_dir if (location_dir / "climate_summary.json").exists() else cached_dir or power
     scoped_soil = location_dir if (location_dir / "soilgrids_profile.json").exists() else None
     climate = _read(scoped_power / "climate_summary.json")

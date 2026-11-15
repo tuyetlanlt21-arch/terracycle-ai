@@ -64,6 +64,54 @@
       ]
     },
     {
+      "id": "fao56_crop_coefficients",
+      "title": "FAO Irrigation and Drainage Paper 56: Crop evapotranspiration",
+      "publisher": "Food and Agriculture Organization of the United Nations",
+      "url": "https://www.fao.org/4/X0490E/x0490e0b.htm",
+      "data_kind": "reference_crop_coefficient_guidance",
+      "fields": ["rice and soybean crop coefficients by growth stage", "reference crop stage durations"],
+      "temporal_coverage": "General agronomic guidance, not a current-year dataset.",
+      "spatial_scope": "Reference values under stated crop and climate assumptions; not calibrated to Long Xuyen varieties or fields.",
+      "limitations": [
+        "Kc values require crop stage lengths and local climate adjustment.",
+        "ETc is not equivalent to field irrigation demand, effective rainfall, or a rain threshold.",
+        "Mung bean values from other bean categories are not substituted for species-specific data."
+      ]
+    },
+    {
+      "id": "mungbean_mi6_sri_lanka",
+      "title": "Determination of crop coefficient and crop water requirement of mungbean in DL1b Sri Lanka",
+      "publisher": "Open University of Sri Lanka research proceedings",
+      "url": "https://ours.ou.ac.lk/wp-content/uploads/2017/05/ENG-08-Formatted-C.pdf",
+      "data_kind": "mungbean_single_site_field_trial",
+      "fields": ["MI-6 crop coefficients by stage", "65-day study duration", "193.8 mm measured seasonal consumptive water use"],
+      "temporal_coverage": "Field study conducted during 2012–2013; one reported growing season.",
+      "spatial_scope": "Southern dry zone of Sri Lanka; not Long Xuyen or An Giang.",
+      "limitations": [
+        "One cultivar, one site and one season; the authors state that further seasons were needed to confirm results.",
+        "Values are shown as out-of-region indicative evidence and are not used to make PASS/FAIL decisions.",
+        "Seasonal consumptive use is not a rainfall threshold or irrigation supply measurement."
+      ],
+      "review_status": "out_of_region_indicative_only"
+    },
+    {
+      "id": "fao_irrigation_water_quality",
+      "title": "FAO Water Quality for Agriculture",
+      "publisher": "Food and Agriculture Organization of the United Nations",
+      "url": "https://www.fao.org/4/t0234e/T0234E01.htm",
+      "data_kind": "irrigation_water_quality_screening_guidance",
+      "fields": [
+        "general irrigation-water salinity restriction bands using ECw"
+      ],
+      "temporal_coverage": "General irrigation guidance; no local measurement or season-specific dataset.",
+      "spatial_scope": "General screening guidance, not calibrated for an individual farm or crop-management system.",
+      "limitations": [
+        "ECw below 0.7 dS/m is the no-restriction screening band; 0.7–3.0 dS/m has slight-to-moderate restrictions; above 3.0 dS/m has severe restrictions.",
+        "The middle band requires field-specific soil, drainage, crop and management evidence; it remains UNKNOWN.",
+        "This screening does not replace a water-quality laboratory report or determine irrigation quantity."
+      ]
+    },
+    {
       "id": "isric_soilgrids",
       "title": "SoilGrids global soil information",
       "publisher": "ISRIC – World Soil Information",
