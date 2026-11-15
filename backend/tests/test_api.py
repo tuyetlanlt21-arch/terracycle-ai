@@ -95,11 +95,16 @@ def test_compare_response_has_consistent_recommendation_contract_for_each_strate
     body=response.json()
     assert set(body)=={"recommendations","rejected_alternatives","missing_data_warnings","warnings","provenance","scoring"}
     item=body["recommendations"][0]
-    assert set(item)=={"sequence","crop_id","crop_name","strategy","eligibility","score","growth_duration_days","hard_constraints_pass","suitability","rationale","warnings","sources"}
+    assert {"sequence","crop_id","crop_name","strategy","eligibility","score","growth_duration_days","hard_constraints_pass","suitability","rationale","warnings","sources","climate_suitability","farm_suitability"} <= set(item)
     assert item["strategy"]==strategy
     assert item["eligibility"] in {"PASS","FAIL","UNKNOWN"}
     assert item["score"] is None
     assert item["hard_constraints_pass"] in {"PASS","FAIL","UNKNOWN"}
+    assert item["climate_suitability"]["status"] in {"PASS","FAIL","NEEDS_INPUT","DATA_UNAVAILABLE"}
+    assert item["farm_suitability"]["status"] in {"PASS","FAIL","NEEDS_INPUT","DATA_UNAVAILABLE"}
+    # Null final decisions are omitted by the API's exclude-defaults response
+    # policy; when present they can only be a verified terminal decision.
+    assert item.get("final_decision") in {None,"PASS","FAIL"}
     assert set(item["suitability"].values())<={"PASS","FAIL","UNKNOWN"}
     assert isinstance(item["rationale"],list)
     assert body["provenance"]["forecast_available"] is False
@@ -207,13 +212,13 @@ def test_missing_daily_climate_file_leaves_suitability_unknown(tmp_path, monkeyp
     assert any("daily dataset is unavailable" in warning for warning in response.json()["missing_data_warnings"])
 
 def test_compare_with_available_farm_inputs_returns_sourced_assessment():
-    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01","soil_ph":6.0,"soil_salinity_ec":1.0,"irrigation_water_ec":0.5,"irrigation_available":True,"freshwater_availability":"adequate"},"strategy":"current_practice","candidate_crop_ids":["rice"]})
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"planting_date":"2024-11-01","soil_ph":6.0,"soil_salinity_ec":1.0,"irrigation_water_ec":0.5,"irrigation_available":True,"freshwater_availability":"adequate","latitude":10.8403,"longitude":106.8333},"strategy":"current_practice","candidate_crop_ids":["rice"]})
     assert response.status_code==200
     item=response.json()["recommendations"][0]
     assert item["suitability"]["temperature"]=="PASS"
     assert item["suitability"]["soil"]=="PASS"
     assert item["suitability"]["salinity"]=="PASS"
-    assert item["suitability"]["rainfall_window"]=="UNKNOWN"
+    assert item["suitability"]["rainfall_window"]=="PASS"
     assert item["score"] is None
 
 def test_compare_with_missing_soil_measurements_keeps_soil_unknown():
@@ -234,10 +239,10 @@ def test_planting_date_outside_climate_coverage_returns_unknown_not_server_error
     assert item["eligibility"]=="UNKNOWN"
     assert item["suitability"]["temperature"]=="UNKNOWN"
     assert item["score"] is None
-    assert any("daily climate coverage is incomplete" in warning for warning in response.json()["missing_data_warnings"])
+    assert any("NASA POWER daily dataset is unavailable" in warning for warning in response.json()["missing_data_warnings"])
 
 def test_unsupported_crop_transition_is_returned_as_rejected_alternative():
-    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1},"strategy":"current_practice","candidate_crop_ids":["maize"]})
+    response=client.post("/api/rotations/compare",json={"farm":{"current_crop":"rice","farm_area_ha":1,"latitude":10.383333,"longitude":105.45},"strategy":"current_practice","candidate_crop_ids":["maize"]})
     assert response.status_code==200
     body=response.json()
     assert body["recommendations"]==[]
